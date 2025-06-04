@@ -23,7 +23,7 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        // Guarda el token de acceso (JWT) en localStorage
+        // Guarda el token de acceso (JWT) en localStorage.
         localStorage.setItem("token", data.access); // Aquí usamos data.access correctamente
 
         alert("Login correcto");
