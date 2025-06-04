@@ -1,0 +1,29 @@
+# Entornos virtuales
+venv/
+.env
+
+# Archivos de configuración y claves
+*.env
+
+# Archivos de base de datos
+*.sqlite3
+
+# Archivos de caché y compilados
+__pycache__/
+*.py[cod]
+*.log
+
+# Archivos generados por el sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de migraciones (opcional si los quieres ignorar)
+# **/migrations/*.py
+# **/migrations/*.pyc
+
+# Archivos de static y media (si los generas en producción)
+staticfiles/
+media/
+
+# Ignorar credenciales de Google Drive   
+api/google_drive/credentials.json

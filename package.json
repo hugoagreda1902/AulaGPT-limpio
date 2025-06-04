@@ -1,0 +1,22 @@
+{
+  "name": "aula-gpt",
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "concurrently": "^9.1.2",
+    "firebase": "^11.6.0",
+    "gapi-script": "^1.2.0",
+    "mysql2": "^3.14.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-scripts": "^5.0.1",
+    "sass": "^1.86.1",
+    "serve": "^14.2.4"
+  },
+  "scripts": {
+    "start": "python manage.py runserver"
+  },
+  "engines": {
+    "node": "14.x"
+  }
+}
