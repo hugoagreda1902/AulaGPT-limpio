@@ -14,7 +14,7 @@ from .serializers import (
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
 )
 
-from api.google_drive.utils import subir_a_google_drive, crear_carpeta_drive
+from api.google_drive.utils import subir_a_google_drive, crear_carpeta_drive, obtener_o_crear_subcarpeta_usuario
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en serializers.py
 
