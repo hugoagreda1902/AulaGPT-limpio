@@ -7,12 +7,15 @@ from django.conf import settings
 
 # ✅ Conectar con el servicio de Google Drive
 def get_drive_service():
-    credentials = service_account.Credentials.from_service_account_file(
-        str(settings.GOOGLE_SERVICE_ACCOUNT_FILE),  # aquí conviertes Path a str
+    # Leer el JSON desde la variable de entorno
+    info = json.loads(os.environ['GOOGLE_SERVICE_ACCOUNT_JSON'])
+
+    credentials = service_account.Credentials.from_service_account_info(
+        info,
         scopes=['https://www.googleapis.com/auth/drive']
     )
-    return build('drive', 'v3', credentials=credentials)
 
+    return build('drive', 'v3', credentials=credentials)
 
 # ✅ Crear carpeta de clase (si no existe)
 def crear_carpeta_drive(nombre_carpeta):
