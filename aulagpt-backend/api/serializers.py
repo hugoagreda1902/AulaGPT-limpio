@@ -2,6 +2,9 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
+import logging
+from rest_framework import status
+from rest_framework.response import Response
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'  # Le decimos a JWT que el identificador es 'email'
@@ -70,19 +73,55 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-class DocumentsSerializer(serializers.ModelSerializer):
-    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+logger = logging.getLogger(__name__)
 
-    class Meta:
-        model = Documents
-        fields = [
-            'document_id', 'owner_id', 'class_id', 'subject',
-            'file', 'file_name', 'file_type', 'upload_date', 'drive_link'
-        ]
-        read_only_fields = ['document_id', 'upload_date', 'drive_link', 'file_name', 'file_type']
+class DocumentsViewSet(viewsets.ModelViewSet):
+    queryset = Documents.objects.all()
+    serializer_class = DocumentsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
-    def create(self, validated_data):
-        raise NotImplementedError("La creación debe hacerse desde el ViewSet.")
+    def create(self, request, *args, **kwargs):
+        file = request.FILES.get('file')
+        subject = request.data.get('subject')
+        class_id = request.data.get('class_id')
+
+        if not file or not subject or not class_id:
+            return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=400)
+
+        try:
+            clase = Class.objects.get(pk=class_id)
+
+            if not clase.drive_folder_id:
+                folder_id = crear_carpeta_drive(clase.class_name)
+                clase.drive_folder_id = folder_id
+                clase.save()
+            else:
+                folder_id = clase.drive_folder_id
+
+            user_folder_id = obtener_o_crear_subcarpeta_usuario(folder_id, request.user.user_id)
+
+            drive_link = subir_a_google_drive(file, user_folder_id)
+
+        except Exception as e:
+            logger.error(f"Error en Google Drive: {str(e)}", exc_info=True)  # Log completo con traceback
+            return Response({'error': f'Error con Google Drive: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            document = Documents.objects.create(
+                owner=request.user,
+                class_id=clase,
+                subject=subject,
+                file_name=file.name,
+                file_type=file.content_type,
+                drive_link=drive_link
+            )
+        except Exception as e:
+            logger.error(f"Error al crear el documento en DB: {str(e)}", exc_info=True)
+            return Response({'error': f'Error al crear documento: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        serializer = DocumentsSerializer(document)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ClassSerializer(serializers.ModelSerializer):
     class Meta:
