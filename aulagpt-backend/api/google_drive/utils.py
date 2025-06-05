@@ -8,7 +8,7 @@ from django.conf import settings
 # ✅ Conectar con el servicio de Google Drive
 def get_drive_service():
     credentials = service_account.Credentials.from_service_account_file(
-        settings.GOOGLE_SERVICE_ACCOUNT_FILE,
+        str(settings.GOOGLE_SERVICE_ACCOUNT_FILE),  # aquí conviertes Path a str
         scopes=['https://www.googleapis.com/auth/drive']
     )
     return build('drive', 'v3', credentials=credentials)
