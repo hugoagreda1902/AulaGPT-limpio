@@ -15,7 +15,12 @@ from .serializers import (
 )
 
 from api.google_drive.utils import subir_a_google_drive, crear_carpeta_drive
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en serializers.py
 
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    
 # --- Ping DB ---
 @api_view(['GET'])
 @permission_classes([AllowAny])

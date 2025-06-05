@@ -45,6 +45,7 @@ ROOT_URLCONF = 'aulagpt_backend.urls'
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
+AUTH_USER_MODEL = 'api.User'  # Tu modelo personalizado de usuario
 
 # Archivos estáticos y media
 STATIC_URL = '/static/'

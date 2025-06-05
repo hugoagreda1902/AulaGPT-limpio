@@ -1,6 +1,32 @@
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
 from rest_framework import serializers
 from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'  # Le decimos a JWT que el identificador es 'email'
+
+    def validate(self, attrs):
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        if email and password:
+            user = authenticate(request=self.context.get("request"), email=email, password=password)
+            if not user:
+                raise serializers.ValidationError("Email o contraseña incorrectos")
+        else:
+            raise serializers.ValidationError("Debe incluir 'email' y 'password'")
+
+        data = super().validate(attrs)
+
+        # Información adicional opcional
+        data['user_id'] = user.user_id
+        data['name'] = user.name
+        data['surname'] = user.surname
+        data['role'] = user.role
+
+        return data
+        
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
