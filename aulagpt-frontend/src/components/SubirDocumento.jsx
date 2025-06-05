@@ -57,7 +57,7 @@ function SubirDocumento() {
       }
 
       const response = await axios.post(
-        'https://aulagpt.onrender.com/api/uploadDocument/',
+        'https://aulagpt.onrender.com/api/documents/',
         formData,
         {
           headers: {
