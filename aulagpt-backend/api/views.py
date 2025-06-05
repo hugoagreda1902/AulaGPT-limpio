@@ -1,35 +1,35 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
-from google.oauth2 import service_account
-import io
+from rest_framework.views import APIView
+
 from django.db import connection
 import time
+
 from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
 from .serializers import (
     RegisterSerializer, UserSerializer, DocumentsSerializer, ClassSerializer, UserClassSerializer,
-    DocumentsSerializer, TestsSerializer, TestQuestionSerializer,
-    TestAnswerSerializer, ActivitySerializer
+    TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
 )
 
-@ api_view(['GET'])
+from api.google_drive.utils import subir_archivo_a_drive  # ✅ el nuevo método limpio
+
+# --- Ping DB ---
+@api_view(['GET'])
 @permission_classes([AllowAny])
 def ping_db(request):
     start = time.time()
     try:
         connection.ensure_connection()
-        status = "OK"
+        db_status = "OK"
     except Exception as e:
-        status = f"ERROR: {e}"
+        db_status = f"ERROR: {e}"
     elapsed = time.time() - start
-    return Response({"db_status": status, "elapsed": elapsed})
+    return Response({"db_status": db_status, "elapsed": elapsed})
 
-# ✅ Vista protegida con autenticación JWT
+# --- Vista protegida ---
 class MiVistaProtegida(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -37,7 +37,7 @@ class MiVistaProtegida(APIView):
         return Response({"mensaje": f"Hola, {request.user.username}"})
 
 
-# ✅ Gestión de usuarios
+# --- User Management ---
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -60,7 +60,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 "role": user.role
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
     @action(detail=False, methods=['post'], url_path='login')
     def login(self, request):
         email = request.data.get('email')
@@ -79,7 +79,8 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
 
-# ✅ Gestión de documentos con subida a Google Drive
+
+# --- Document Upload & Drive ---
 class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
@@ -95,55 +96,45 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            creds = service_account.Credentials.from_service_account_file(
-                'api/google_drive/credentials.json',
-                scopes=['https://www.googleapis.com/auth/drive']
+            clase = Class.objects.get(pk=class_id)
+            folder_id = clase.drive_folder_id or '17VaTCurTKg2IZ1Oo-VC5W2uJNHTI6cy8'  # Carpeta por defecto
+            drive_link = subir_archivo_a_drive(
+                archivo=file,
+                nombre_archivo=file.name,
+                mime_type=file.content_type,
+                parent_folder_id=folder_id
             )
-
-            service = build('drive', 'v3', credentials=creds)
-
-            file_metadata = {
-                'name': file.name,
-                'parents': ['17VaTCurTKg2IZ1Oo-VC5W2uJNHTI6cy8'],  # ID carpeta compartida
-            }
-
-            media = MediaIoBaseUpload(file, mimetype=file.content_type)
-            uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-
-            drive_link = f"https://drive.google.com/file/d/{uploaded_file['id']}/view"
-
         except Exception as e:
             return Response({'error': f'Error al subir a Drive: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         document = Documents.objects.create(
             owner=request.user,
-            class_id_id=class_id,
+            class_id=clase,
             subject=subject,
             file_name=file.name,
             file_type=file.content_type,
             drive_link=drive_link
         )
 
-        return Response(DocumentsSerializer(document).data, status=status.HTTP_201_CREATED)
+        serializer = DocumentsSerializer(document)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# ✅ Gestión de clases
+
+# --- Clases ---
 class ClassViewSet(viewsets.ModelViewSet):
     queryset = Class.objects.all()
     serializer_class = ClassSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
-# ✅ Asociación entre usuario y clase
+# --- Asociación usuario-clase ---
 class UserClassViewSet(viewsets.ModelViewSet):
     queryset = UserClass.objects.all()
     serializer_class = UserClassSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save()
 
-
-# ✅ Tests, preguntas, respuestas y actividad
+# --- Tests y actividad ---
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer

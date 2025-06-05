@@ -52,27 +52,14 @@ class DocumentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Documents
-        fields = ['document_id', 'class_id', 'subject', 'file', 'file_name', 'file_type', 'upload_date', 'drive_link']
+        fields = [
+            'document_id', 'class_id', 'subject',
+            'file', 'file_name', 'file_type', 'upload_date', 'drive_link'
+        ]
         read_only_fields = ['document_id', 'upload_date', 'drive_link', 'file_name', 'file_type']
 
     def create(self, validated_data):
-        uploaded_file = validated_data.pop('file')  # ⚠️ importante
-
-        # 👇 Aquí procesas el archivo, por ejemplo, lo subes a Google Drive:
-        drive_link = subir_a_drive(uploaded_file)  # Esta función la defines tú
-        file_name = uploaded_file.name
-        file_type = uploaded_file.content_type
-
-        # 👇 Guardas en la base de datos sólo lo que corresponde:
-        document = Documents.objects.create(
-            owner=self.context['request'].user,
-            subject=validated_data.get('subject'),
-            class_id=validated_data.get('class_id', None),
-            file_name=file_name,
-            file_type=file_type,
-            drive_link=drive_link
-        )
-        return document
+        raise NotImplementedError("La creación debe hacerse desde el ViewSet.")
 
         
 class ClassSerializer(serializers.ModelSerializer):
