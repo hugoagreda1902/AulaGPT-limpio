@@ -102,7 +102,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         try:
             clase = Class.objects.get(pk=class_id)
 
-            # Crear carpeta principal de la clase si no existe
             if not clase.drive_folder_id:
                 folder_id = crear_carpeta_drive(clase.class_name)
                 clase.drive_folder_id = folder_id
@@ -110,16 +109,15 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             else:
                 folder_id = clase.drive_folder_id
 
-            # Obtener o crear subcarpeta para el usuario dentro de la carpeta de la clase
-            user_folder_id = obtener_o_crear_subcarpeta_usuario(folder_id, request.user.user_id)
+            user_folder_id = obtener_o_crear_subcarpeta_usuario(folder_id, request.user.id)
 
-            # Subir archivo a la subcarpeta del usuario
             drive_link = subir_a_google_drive(file, user_folder_id)
 
+        except Class.DoesNotExist:
+            return Response({'error': 'Clase no encontrada.'}, status=404)
         except Exception as e:
             return Response({'error': f'Error con Google Drive: {str(e)}'}, status=500)
 
-        # Crear documento en base de datos
         document = Documents.objects.create(
             owner=request.user,
             class_id=clase,
