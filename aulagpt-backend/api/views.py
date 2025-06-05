@@ -123,7 +123,7 @@ class UploadDocumentView(APIView):
         # Subir archivo a Google Drive+
         try:
             creds = service_account.Credentials.from_service_account_file(
-                'google_drive/credentials.json',
+                'api/google_drive/credentials.json',
                 scopes=['https://www.googleapis.com/auth/drive']
             )
 
