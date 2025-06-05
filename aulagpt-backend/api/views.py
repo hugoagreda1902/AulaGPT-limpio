@@ -14,7 +14,7 @@ from .serializers import (
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
 )
 
-from api.google_drive.utils import subir_archivo_a_drive  # ✅ el nuevo método limpio
+from api.google_drive.utils import subir_a_google_drive, crear_carpeta_drive
 
 # --- Ping DB ---
 @api_view(['GET'])
@@ -86,27 +86,33 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentsSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
-
+    
     def create(self, request, *args, **kwargs):
         file = request.FILES.get('file')
         subject = request.data.get('subject')
         class_id = request.data.get('class_id')
 
         if not file or not subject or not class_id:
-            return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=400)
 
         try:
             clase = Class.objects.get(pk=class_id)
-            folder_id = clase.drive_folder_id or '17VaTCurTKg2IZ1Oo-VC5W2uJNHTI6cy8'  # Carpeta por defecto
-            drive_link = subir_archivo_a_drive(
-                archivo=file,
-                nombre_archivo=file.name,
-                mime_type=file.content_type,
-                parent_folder_id=folder_id
-            )
-        except Exception as e:
-            return Response({'error': f'Error al subir a Drive: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+            # Crear carpeta si no existe
+            if not clase.drive_folder_id:
+                folder_id = crear_carpeta_drive(clase.name)
+                clase.drive_folder_id = folder_id
+                clase.save()
+            else:
+                folder_id = clase.drive_folder_id
+
+            # Subir archivo a Drive
+            drive_link = subir_a_google_drive(file, folder_id)
+
+        except Exception as e:
+            return Response({'error': f'Error con Google Drive: {str(e)}'}, status=500)
+
+        # Crear documento en base de datos
         document = Documents.objects.create(
             owner=request.user,
             class_id=clase,
@@ -116,8 +122,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             drive_link=drive_link
         )
 
-        serializer = DocumentsSerializer(document)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(DocumentsSerializer(document).data, status=201)
 
 
 # --- Clases ---

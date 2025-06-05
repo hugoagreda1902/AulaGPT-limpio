@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
-from .google_drive.utils import subir_a_google_drive
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,7 +33,6 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def validate_email(self, value):
-        # Validar que no exista otro usuario con ese email
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Este email ya está registrado.")
         return value
@@ -42,10 +40,9 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)
-        user.set_password(password)  # Encriptar la contraseña
+        user.set_password(password)
         user.save()
         return user
-    
 
 class DocumentsSerializer(serializers.ModelSerializer):
     file = serializers.FileField(write_only=True)
@@ -61,20 +58,10 @@ class DocumentsSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         raise NotImplementedError("La creación debe hacerse desde el ViewSet.")
 
-        
 class ClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = Class
         fields = '__all__'
-
-    def create(self, validated_data):
-        folder_name = validated_data.get('name')
-        # Crear carpeta en Google Drive
-        folder_id = subir_a_google_drive (folder_name)
-        # Asignar el ID de la carpeta a validated_data
-        validated_data['google_drive_folder_id'] = folder_id
-        # Crear la instancia Class con el folder_id
-        return super().create(validated_data)
 
 class UserClassSerializer(serializers.ModelSerializer):
     class Meta:
