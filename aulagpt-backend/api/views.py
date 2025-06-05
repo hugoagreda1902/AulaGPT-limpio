@@ -81,7 +81,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
 # ✅ Gestión de documentos con subida a Google Drive
 class DocumentsViewSet(viewsets.ModelViewSet):
-    class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [permissions.IsAuthenticated]

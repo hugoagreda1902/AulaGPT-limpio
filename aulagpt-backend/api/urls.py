@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ping_db, UserViewSet, ClassViewSet, UserClassViewSet,
-    DocumentsViewSet, UploadDocumentView, TestsViewSet, TestQuestionViewSet,
+    DocumentsViewSet, TestsViewSet, TestQuestionViewSet,
     TestAnswerViewSet, ActivityViewSet,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
