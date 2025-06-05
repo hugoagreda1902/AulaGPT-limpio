@@ -20,13 +20,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         # Información adicional opcional
-        data['user_id'] = user.user_id
+        data['user_id'] = user.id
         data['name'] = user.name
         data['surname'] = user.surname
         data['role'] = user.role
 
         return data
-        
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
