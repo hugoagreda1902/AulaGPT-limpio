@@ -40,7 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('student', 'Student'),     # Rol alumno
         ('teacher', 'Teacher'),     # Rol profesor
     )
-    id = models.AutoField(primary_key=True)                    # ID autoincremental único
+    user_id = models.AutoField(primary_key=True)                    # ID autoincremental único
     name = models.CharField(max_length=100)                         # Nombre del usuario
     surname = models.CharField(max_length=100)                      # Apellidos
     email = models.EmailField(unique=True)                          # Email único para login
