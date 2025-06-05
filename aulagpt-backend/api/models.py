@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.contrib.auth.models import User
+
 
 # Manager personalizado para el modelo User, para crear usuarios y superusuarsios
 class UserManager(BaseUserManager):
@@ -87,7 +89,7 @@ class Documents(models.Model):
     document_id = models.AutoField(primary_key=True)
 
     # Asociar documento a usuario (opcional)
-    owner_id = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='documents')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='documents')
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE, default=1, related_name='documents')
     subject = models.CharField(max_length=100, default='Sin asignar')
     file_name = models.CharField(max_length=200)
