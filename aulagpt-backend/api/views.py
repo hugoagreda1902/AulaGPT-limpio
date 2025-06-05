@@ -15,7 +15,12 @@ from .serializers import (
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
 )
 
-from api.google_drive.utils import subir_a_google_drive, crear_carpeta_drive, obtener_o_crear_subcarpeta_usuario
+from .google_drive.utils import (
+    obtener_carpeta_asignatura,
+    obtener_o_crear_subcarpeta_usuario,
+    subir_archivo_a_drive
+)
+
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en serializers.py
 
@@ -89,47 +94,39 @@ class UserViewSet(viewsets.ModelViewSet):
 class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        file = request.FILES.get('file')
-        subject = request.data.get('subject')
-        class_id = request.data.get('class_id')
+        usuario = request.user
+        archivo = request.FILES.get('file')
+        asignatura = request.data.get('subject')
+        clase_id = request.data.get('class_id')
 
-        if not file or not subject or not class_id:
-            return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=400)
+        if not archivo or not asignatura or not clase_id:
+            return Response(
+                {'error': 'El archivo, la asignatura y la clase son obligatorios.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            clase = Class.objects.get(pk=class_id)
+            carpeta_asignatura_id = obtener_carpeta_asignatura(asignatura)
+            carpeta_usuario_id = obtener_o_crear_subcarpeta_usuario(carpeta_asignatura_id, usuario.id)
+            enlace_drive = subir_archivo_a_drive(archivo, carpeta_usuario_id)
 
-            if not clase.drive_folder_id:
-                folder_id = crear_carpeta_drive(clase.class_name)
-                clase.drive_folder_id = folder_id
-                clase.save()
-            else:
-                folder_id = clase.drive_folder_id
+            nuevo_documento = Documents.objects.create(
+                owner=usuario,
+                class_id_id=clase_id,
+                subject=asignatura,
+                file_name=archivo.name,
+                file_type=archivo.content_type,
+                drive_link=enlace_drive
+            )
 
-            user_folder_id = obtener_o_crear_subcarpeta_usuario(folder_id, request.user.id)
+            serializer = self.get_serializer(nuevo_documento)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-            drive_link = subir_a_google_drive(file, user_folder_id)
-
-        except Class.DoesNotExist:
-            return Response({'error': 'Clase no encontrada.'}, status=404)
         except Exception as e:
-            tb = traceback.format_exc()
-            return Response({'error': f'Error con Google Drive: {str(e)}', 'traceback': tb}, status=500)
-
-        document = Documents.objects.create(
-            owner=request.user,
-            class_id=clase,
-            subject=subject,
-            file_name=file.name,
-            file_type=file.content_type,
-            drive_link=drive_link
-        )
-
-        return Response(DocumentsSerializer(document).data, status=201)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # --- Clases ---
 class ClassViewSet(viewsets.ModelViewSet):
