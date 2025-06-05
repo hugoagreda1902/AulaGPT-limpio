@@ -80,13 +80,12 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
-# --- Document Upload & Drive ---
 class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
-    
+
     def create(self, request, *args, **kwargs):
         file = request.FILES.get('file')
         subject = request.data.get('subject')
@@ -98,7 +97,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         try:
             clase = Class.objects.get(pk=class_id)
 
-            # Crear carpeta si no existe
+            # Crear carpeta principal de la clase si no existe
             if not clase.drive_folder_id:
                 folder_id = crear_carpeta_drive(clase.name)
                 clase.drive_folder_id = folder_id
@@ -106,8 +105,11 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             else:
                 folder_id = clase.drive_folder_id
 
-            # Subir archivo a Drive
-            drive_link = subir_a_google_drive(file, folder_id)
+            # Obtener o crear subcarpeta para el usuario dentro de la carpeta de la clase
+            user_folder_id = obtener_o_crear_subcarpeta_usuario(folder_id, request.user.user_id)
+
+            # Subir archivo a la subcarpeta del usuario
+            drive_link = subir_a_google_drive(file, user_folder_id)
 
         except Exception as e:
             return Response({'error': f'Error con Google Drive: {str(e)}'}, status=500)
@@ -123,6 +125,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         )
 
         return Response(DocumentsSerializer(document).data, status=201)
+
 
 
 # --- Clases ---

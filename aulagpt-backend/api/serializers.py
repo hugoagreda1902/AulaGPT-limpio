@@ -63,6 +63,14 @@ class ClassSerializer(serializers.ModelSerializer):
         model = Class
         fields = '__all__'
 
+    def create(self, validated_data):
+        folder_name = validated_data.get('name')
+        # Aquí debes llamar a la función que crea carpeta en Drive, no subir archivo
+        from api.google_drive.utils import crear_carpeta_drive
+        folder_id = crear_carpeta_drive(folder_name)
+        validated_data['drive_folder_id'] = folder_id
+        return super().create(validated_data)
+
 class UserClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserClass

@@ -1,38 +1,67 @@
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from google.oauth2 import service_account
 import io
-import os
+from django.conf import settings
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SERVICE_ACCOUNT_FILE = os.path.join(BASE_DIR, 'credentials.json')
-SCOPES = ['https://www.googleapis.com/auth/drive']
 
+# ✅ Conectar con el servicio de Google Drive
 def get_drive_service():
-    creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    service = build('drive', 'v3', credentials=creds)
-    return service
+    credentials = service_account.Credentials.from_service_account_file(
+        settings.GOOGLE_SERVICE_ACCOUNT_FILE,
+        scopes=['https://www.googleapis.com/auth/drive']
+    )
+    return build('drive', 'v3', credentials=credentials)
 
+
+# ✅ Crear carpeta de clase (si no existe)
 def crear_carpeta_drive(nombre_carpeta):
     service = get_drive_service()
-    file_metadata = {
+    folder_metadata = {
         'name': nombre_carpeta,
-        'mimeType': 'application/vnd.google-apps.folder'
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [settings.GOOGLE_DRIVE_PARENT_FOLDER_ID]
     }
-    folder = service.files().create(body=file_metadata, fields='id').execute()
-    return folder.get('id')
+    carpeta = service.files().create(body=folder_metadata, fields='id').execute()
+    return carpeta.get('id')
 
-def subir_a_google_drive(file, folder_id=None):
+
+# ✅ Nueva función: obtener o crear subcarpeta por usuario
+def obtener_o_crear_subcarpeta_usuario(parent_folder_id, user_id):
     service = get_drive_service()
 
+    # Buscar si ya existe
+    query = f"'{parent_folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '{user_id}' and trashed = false"
+    response = service.files().list(q=query, fields="files(id, name)").execute()
+    files = response.get('files', [])
+
+    if files:
+        return files[0]['id']  # Ya existe
+
+    # Crear si no existe
+    folder_metadata = {
+        'name': str(user_id),
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [parent_folder_id]
+    }
+    carpeta = service.files().create(body=folder_metadata, fields='id').execute()
+    return carpeta.get('id')
+
+
+# ✅ Subir archivo a Google Drive
+def subir_a_google_drive(file, folder_id):
+    service = get_drive_service()
     file_metadata = {
         'name': file.name,
-        'parents': [folder_id] if folder_id else []
+        'parents': [folder_id]
     }
+    media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype=file.content_type, resumable=True)
+    archivo = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
-    # Convertir file a un stream que MediaIoBaseUpload acepta
-    file_stream = io.BytesIO(file.read())
-    media = MediaIoBaseUpload(file_stream, mimetype=file.content_type)
-    uploaded_file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    # Generar enlace de compartición
+    service.permissions().create(
+        fileId=archivo.get('id'),
+        body={'type': 'anyone', 'role': 'reader'},
+    ).execute()
 
-    return f"https://drive.google.com/file/d/{uploaded_file['id']}/view"
+    return f"https://drive.google.com/file/d/{archivo.get('id')}/view?usp=sharing"
