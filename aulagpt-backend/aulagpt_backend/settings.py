@@ -4,6 +4,9 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
+GOOGLE_SERVICE_ACCOUNT_FILE = BASE_DIR / 'api' / 'google_drive' / 'credential.json'
+
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
