@@ -26,7 +26,7 @@ def crear_carpeta_drive(nombre_carpeta):
     folder_metadata = {
         'name': nombre_carpeta,
         'mimeType': 'application/vnd.google-apps.folder',
-        'parents': [settings.GOOGLE_DRIVE_PARENT_FOLDER_ID]
+        'parents': [os.environ['GOOGLE_DRIVE_PARENT_FOLDER_ID']]
     }
     carpeta = service.files().create(body=folder_metadata, fields='id').execute()
     return carpeta.get('id')
