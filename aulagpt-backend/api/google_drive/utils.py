@@ -29,6 +29,26 @@ def obtener_carpeta_asignatura(asignatura):
         raise ValueError(f"No se encontró carpeta de Drive para la asignatura: '{asignatura}'")
     return carpeta_id
 
+
+def obtener_o_crear_subcarpeta_usuario(carpeta_padre_id, user_id):
+    servicio = obtener_servicio_drive()
+
+    query = f"'{carpeta_padre_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '{user_id}' and trashed = false"
+    response = servicio.files().list(q=query, fields="files(id, name)").execute()
+    carpetas = response.get('files', [])
+
+    if carpetas:
+        return carpetas[0]['id']
+
+    metadatos = {
+        'name': str(user_id),
+        'mimeType': 'application/vnd.google-apps.folder',
+        'parents': [carpeta_padre_id]
+    }
+    carpeta = servicio.files().create(body=metadatos, fields='id').execute()
+    return carpeta.get('id')
+
+
 # ✅ Subir archivo a Google Drive
 def subir_archivo_drive(archivo, carpeta_id):
     servicio = obtener_servicio_drive()
