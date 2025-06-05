@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ping_db, UserViewSet, ClassViewSet, UserClassViewSet,
     DocumentsViewSet, TestsViewSet, TestQuestionViewSet,
-    TestAnswerViewSet, ActivityViewSet,
+    TestAnswerViewSet, ActivityViewSet, CustomTokenObtainPairView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -22,6 +22,6 @@ urlpatterns = [
     path('ping-db/', ping_db, name='ping_db'),
 
     # JWT Authentication
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
