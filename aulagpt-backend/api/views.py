@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from django.db import connection
 import time
+import traceback
 
 from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
 from .serializers import (
@@ -116,7 +117,8 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         except Class.DoesNotExist:
             return Response({'error': 'Clase no encontrada.'}, status=404)
         except Exception as e:
-            return Response({'error': f'Error con Google Drive: {str(e)}'}, status=500)
+            tb = traceback.format_exc()
+            return Response({'error': f'Error con Google Drive: {str(e)}', 'traceback': tb}, status=500)
 
         document = Documents.objects.create(
             owner=request.user,
