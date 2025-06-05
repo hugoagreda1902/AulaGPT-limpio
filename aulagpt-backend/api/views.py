@@ -20,7 +20,7 @@ from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-    
+
 # --- Ping DB ---
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -104,7 +104,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
             # Crear carpeta principal de la clase si no existe
             if not clase.drive_folder_id:
-                folder_id = crear_carpeta_drive(clase.name)
+                folder_id = crear_carpeta_drive(clase.class_name)
                 clase.drive_folder_id = folder_id
                 clase.save()
             else:
