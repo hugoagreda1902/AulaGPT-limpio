@@ -126,8 +126,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
         return Response(DocumentsSerializer(document).data, status=201)
 
-
-
 # --- Clases ---
 class ClassViewSet(viewsets.ModelViewSet):
     queryset = Class.objects.all()
