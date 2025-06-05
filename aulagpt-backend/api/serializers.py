@@ -74,19 +74,19 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class DocumentsSerializer(serializers.ModelSerializer):
-    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+    owner = serializers.IntegerField(source='owner.id', read_only=True)
 
     class Meta:
         model = Documents
         fields = [
-            'document_id', 'owner_id', 'class_id', 'subject',
-            'file', 'file_name', 'file_type', 'upload_date', 'drive_link'
+            'document_id', 'owner', 'class_id', 'subject',
+            'file_name', 'file_type', 'upload_date', 'drive_link'
         ]
         read_only_fields = ['document_id', 'upload_date', 'drive_link', 'file_name', 'file_type']
 
     def create(self, validated_data):
         raise NotImplementedError("La creación debe hacerse desde el ViewSet.")
-        
+
 class ClassSerializer(serializers.ModelSerializer):
     class Meta:
         model = Class
