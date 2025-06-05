@@ -4,7 +4,7 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
-GOOGLE_CREDENTIALS_PATH='/opt/render/project/src/aulagpt-backend/api/google_drive/credential.json'
+GOOGLE_SERVICE_ACCOUNT_FILE = '/opt/render/project/src/aulagpt-backend/api/google_drive/credential.json'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
