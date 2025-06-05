@@ -81,46 +81,20 @@ class UserViewSet(viewsets.ModelViewSet):
 
 # ✅ Gestión de documentos con subida a Google Drive
 class DocumentsViewSet(viewsets.ModelViewSet):
+    class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
 
     def create(self, request, *args, **kwargs):
-        serializer = DocumentsSerializer(data=request.data)
-
-        if serializer.is_valid():
-            uploaded_file = request.FILES.get('file')
-
-            if not uploaded_file:
-                return Response({'file': 'Archivo requerido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            # 📤 Subir archivo a Google Drive
-            drive_link = subir_a_google_drive(uploaded_file)
-
-            # 📦 Guardar documento en la base de datos
-            document = Documents.objects.create(
-                drive_link=drive_link,
-                file_name=uploaded_file.name,
-                file_type=uploaded_file.content_type,
-                class_id=serializer.validated_data.get('class_id')
-            )
-
-            return Response(DocumentsSerializer(document).data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class UploadDocumentView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')
         subject = request.data.get('subject')
-        class_id = request.data.get('class_id') or 1  # Puedes ajustarlo según lo necesites
+        class_id = request.data.get('class_id')
 
-        if not file or not subject:
-            return Response({'error': 'Archivo y materia son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not file or not subject or not class_id:
+            return Response({'error': 'Archivo, materia y clase son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Subir archivo a Google Drive+
         try:
             creds = service_account.Credentials.from_service_account_file(
                 'api/google_drive/credentials.json',
@@ -131,7 +105,7 @@ class UploadDocumentView(APIView):
 
             file_metadata = {
                 'name': file.name,
-                'parents': ['17VaTCurTKg2IZ1Oo-VC5W2uJNHTI6cy8'],  # 👈 PON AQUÍ el ID de la carpeta compartida en Drive
+                'parents': ['17VaTCurTKg2IZ1Oo-VC5W2uJNHTI6cy8'],  # ID carpeta compartida
             }
 
             media = MediaIoBaseUpload(file, mimetype=file.content_type)
@@ -142,7 +116,6 @@ class UploadDocumentView(APIView):
         except Exception as e:
             return Response({'error': f'Error al subir a Drive: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Guardar en la base de datos
         document = Documents.objects.create(
             owner=request.user,
             class_id_id=class_id,
@@ -152,8 +125,8 @@ class UploadDocumentView(APIView):
             drive_link=drive_link
         )
 
-        serializer = DocumentsSerializer(document)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(DocumentsSerializer(document).data, status=status.HTTP_201_CREATED)
+
 # ✅ Gestión de clases
 class ClassViewSet(viewsets.ModelViewSet):
     queryset = Class.objects.all()

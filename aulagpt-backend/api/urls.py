@@ -20,10 +20,8 @@ router.register(r'activities', ActivityViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('ping-db/', ping_db, name='ping_db'),
-    path('uploadDocument/', UploadDocumentView.as_view(), name='uploadDocument'),
 
     # JWT Authentication
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
 ]
