@@ -95,6 +95,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  # <- Añadido para upload
 
     def create(self, request, *args, **kwargs):
         usuario = request.user
@@ -134,13 +135,11 @@ class ClassViewSet(viewsets.ModelViewSet):
     serializer_class = ClassSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-
 # --- Asociación usuario-clase ---
 class UserClassViewSet(viewsets.ModelViewSet):
     queryset = UserClass.objects.all()
     serializer_class = UserClassSerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
 # --- Tests y actividad ---
 class TestsViewSet(viewsets.ModelViewSet):
@@ -148,20 +147,38 @@ class TestsViewSet(viewsets.ModelViewSet):
     serializer_class = TestsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-
 class TestQuestionViewSet(viewsets.ModelViewSet):
     queryset = TestQuestion.objects.all()
     serializer_class = TestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
 class TestAnswerViewSet(viewsets.ModelViewSet):
     queryset = TestAnswer.objects.all()
     serializer_class = TestAnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+# --- Endpoint para preguntas a la IA ---
+class AskAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        pregunta = request.data.get('question')
+        if not pregunta:
+            return Response({"error": "Debe enviar una pregunta"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Aquí llama a la IA (p. ej. OpenAI) para obtener la respuesta
+            # respuesta = obtener_respuesta_ia(pregunta)
+
+            # Respuesta de prueba para demo:
+            respuesta = f"Respuesta simulada a la pregunta: {pregunta}"
+
+            return Response({"answer": respuesta})
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -8,5 +8,5 @@ def home(request):
 urlpatterns = [
     path('', home),  # Ruta raíz /
     path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),  # Enlaza las urls de tu app 'api'
+    path('api/', include('api.urls')),  # Incluye las URLs de la app 'api'
 ]
