@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import ChatIA from './ChatIA';
+import ChatIA from './components/ChatIA';
 
 // Componente para rutas privadas
 function PrivateRoute({ children }) {
