@@ -23,7 +23,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
 
         # Información adicional opcional
-        data['user_id'] = user.id
+        data['id'] = user.id
         data['name'] = user.name
         data['surname'] = user.surname
         data['role'] = user.role
@@ -53,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['user_id', 'name', 'surname', 'email', 'password', 'role']
+        fields = ['id', 'name', 'surname', 'email', 'password', 'role']
         extra_kwargs = {
             'email': {'required': True},
             'name': {'required': True},

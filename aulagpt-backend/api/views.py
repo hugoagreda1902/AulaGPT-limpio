@@ -85,7 +85,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if user.check_password(password):
             return Response({
                 "message": "Login exitoso",
-                "user_id": user.user_id
+                "id": user.id
             })
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
