@@ -5,6 +5,7 @@ import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import SubirDocumento from './components/SubirDocumento';
+import ChatIA from './ChatIA';
 
 // Componente para rutas privadas
 function PrivateRoute({ children }) {
@@ -21,12 +22,21 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Ruta protegida */}
+          {/* Rutas protegidas */}
           <Route 
             path="/uploadDocument" 
             element={
               <PrivateRoute>
                 <SubirDocumento />
+              </PrivateRoute>
+            } 
+          />
+
+          <Route 
+            path="/chat" 
+            element={
+              <PrivateRoute>
+                <ChatIA />
               </PrivateRoute>
             } 
           />
