@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import SubirDocumento from './components/SubirDocumento';
 import ChatIA from './ChatIA';
 
 // Componente para rutas privadas
@@ -22,16 +21,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Rutas protegidas */}
-          <Route 
-            path="/uploadDocument" 
-            element={
-              <PrivateRoute>
-                <SubirDocumento />
-              </PrivateRoute>
-            } 
-          />
-
+          {/* Ruta protegida para chat y subida de documentos integrada */}
           <Route 
             path="/chat" 
             element={
