@@ -6,13 +6,13 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
 
 GOOGLE_DRIVE_FOLDERS = {
-    'Matemáticas': '1WP1J-sJgNpu5YE_tuNHXfnhZMSwZqQs0',
-    'Lengua': '1eh4Xl5eaM769N2J7LDfQotR9qH1zgiUv',
-    'Inglés': '1EmW54kRVywV0IU3vUhV0JLLPTF3RXMWo',
-    'Historia': '1RsZQZ41LJf39T4FBQQBU_ELsK7Emz1Oc',
-    'Ciencias': '1ZoXYWNPBnVA8sDKYB9-6KdfECf9h7QlJ',
-    'Física': '1gl0m8g8Mtv1Jynb5akpFcNRdqTqrU4gV',
-    'Química': '1zU4mf5df1plP_88WyZHjZ1XDjACq7NMm',
+    'matematicas': '1WP1J-sJgNpu5YE_tuNHXfnhZMSwZqQs0',
+    'lengua': '1eh4Xl5eaM769N2J7LDfQotR9qH1zgiUv',
+    'ingles': '1EmW54kRVywV0IU3vUhV0JLLPTF3RXMWo',
+    'historia': '1RsZQZ41LJf39T4FBQQBU_ELsK7Emz1Oc',
+    'ciencias': '1ZoXYWNPBnVA8sDKYB9-6KdfECf9h7QlJ',
+    'fisica': '1gl0m8g8Mtv1Jynb5akpFcNRdqTqrU4gV',
+    'quimica': '1zU4mf5df1plP_88WyZHjZ1XDjACq7NMm',
 }
 
 
