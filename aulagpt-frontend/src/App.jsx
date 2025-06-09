@@ -4,9 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import ChatIA from './components/ChatIA';
+import ChatIA from "./components/ChatIA";
 
-// Componente para rutas privadas
+// Ruta protegida que verifica token
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/login" />;
@@ -20,8 +20,6 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
-          {/* Ruta protegida para chat y subida de documentos integrada */}
           <Route 
             path="/chat" 
             element={

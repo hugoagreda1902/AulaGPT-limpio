@@ -1,51 +1,68 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 
 function ChatIA() {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [mensajes, setMensajes] = useState([]);
   const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Estados para subir documentos
   const [mostrarSubida, setMostrarSubida] = useState(false);
   const [file, setFile] = useState(null);
-  const [subject, setSubject] = useState('');
-  const [classId, setClassId] = useState('');
-  const [mensajeSubida, setMensajeSubida] = useState('');
-  const [errorSubida, setErrorSubida] = useState('');
+  const [subject, setSubject] = useState("");
+  const [classId, setClassId] = useState("");
+  const [mensajeSubida, setMensajeSubida] = useState("");
+  const [errorSubida, setErrorSubida] = useState("");
 
-  const materias = ['Matemáticas', 'Lengua', 'Ciencias', 'Historia', 'Inglés', 'Física', 'Química'];
-  const clases = [{ id: 1, nombre: 'Provisional' }]; // De momento estático
+  const materias = [
+    "Matemáticas",
+    "Lengua",
+    "Ciencias",
+    "Historia",
+    "Inglés",
+    "Física",
+    "Química",
+  ];
+  const clases = [{ id: 1, nombre: "Provisional" }]; // Puedes cambiarlo por fetch a la API
+
+  const chatContainerRef = useRef(null);
+
+  // Auto scroll al último mensaje
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [mensajes, cargando]);
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const nuevoMensaje = { autor: 'usuario', texto: input };
+    const nuevoMensaje = { autor: "usuario", texto: input };
     setMensajes((prev) => [...prev, nuevoMensaje]);
-    setInput('');
+    setInput("");
     setCargando(true);
-    setError('');
+    setError("");
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
-        'https://aulagpt.onrender.com/api/ask/',
+        "https://aulagpt.onrender.com/api/ask/",
         { pregunta: input },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
 
       const respuestaIA = response.data.respuesta;
-      setMensajes((prev) => [...prev, { autor: 'ia', texto: respuestaIA }]);
+      setMensajes((prev) => [...prev, { autor: "ia", texto: respuestaIA }]);
     } catch (err) {
       console.error(err);
-      setError('Error al comunicarse con la IA');
+      setError("Error al comunicarse con la IA");
     } finally {
       setCargando(false);
     }
@@ -53,70 +70,74 @@ function ChatIA() {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    setMensajeSubida('');
-    setErrorSubida('');
+    setMensajeSubida("");
+    setErrorSubida("");
 
     if (!file || !subject || !classId) {
-      setErrorSubida('Faltan datos para la subida del documento.');
+      setErrorSubida("Faltan datos para la subida del documento.");
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('subject', subject);
-    formData.append('class_id', classId);
+    formData.append("file", file);
+    formData.append("subject", subject);
+    formData.append("class_id", classId);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const response = await axios.post(
-        'https://aulagpt.onrender.com/api/documents/',
+        "https://aulagpt.onrender.com/api/documents/",
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      setMensajeSubida('Documento subido correctamente.');
+      setMensajeSubida("Documento subido correctamente.");
       setFile(null);
-      setSubject('');
-      setClassId('');
+      setSubject("");
+      setClassId("");
     } catch (err) {
       console.error(err);
-      setErrorSubida('Error al subir el documento.');
+      setErrorSubida("Error al subir el documento.");
     }
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
+    <div style={{ maxWidth: 600, margin: "0 auto", padding: "20px" }}>
       <h2>Chat con AulaGPT</h2>
 
       <div
+        ref={chatContainerRef}
         style={{
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          padding: '10px',
-          height: '300px',
-          overflowY: 'auto',
-          marginBottom: '10px',
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          padding: "10px",
+          height: "300px",
+          overflowY: "auto",
+          marginBottom: "10px",
+          backgroundColor: "#fafafa",
         }}
       >
         {mensajes.map((msg, i) => (
           <div
             key={i}
             style={{
-              textAlign: msg.autor === 'usuario' ? 'right' : 'left',
-              marginBottom: '8px',
+              textAlign: msg.autor === "usuario" ? "right" : "left",
+              marginBottom: "8px",
             }}
           >
             <span
               style={{
-                backgroundColor: msg.autor === 'usuario' ? '#d1e7dd' : '#f8d7da',
-                padding: '8px 12px',
-                borderRadius: '12px',
-                display: 'inline-block',
+                backgroundColor: msg.autor === "usuario" ? "#d1e7dd" : "#f8d7da",
+                padding: "8px 12px",
+                borderRadius: "12px",
+                display: "inline-block",
+                maxWidth: "75%",
+                wordWrap: "break-word",
               }}
             >
               {msg.texto}
@@ -126,51 +147,79 @@ function ChatIA() {
         {cargando && <p>Cargando respuesta...</p>}
       </div>
 
-      <form onSubmit={handleSend} style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+      <form
+        onSubmit={handleSend}
+        style={{ display: "flex", gap: "8px", marginBottom: "10px" }}
+      >
         <input
           type="text"
           placeholder="Escribe tu pregunta..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, padding: '8px' }}
+          style={{ flex: 1, padding: "8px" }}
+          disabled={cargando}
+          autoComplete="off"
         />
-        <button type="submit" style={{ padding: '8px 12px' }}>
+        <button type="submit" style={{ padding: "8px 12px" }} disabled={cargando}>
           Enviar
         </button>
       </form>
 
-      <button onClick={() => setMostrarSubida(!mostrarSubida)} style={{ marginBottom: '10px' }}>
-        {mostrarSubida ? 'Ocultar subida de documentos' : 'Subir documento'}
+      <button
+        onClick={() => setMostrarSubida(!mostrarSubida)}
+        style={{ marginBottom: "10px" }}
+      >
+        {mostrarSubida ? "Ocultar subida de documentos" : "Subir documento"}
       </button>
 
       {mostrarSubida && (
         <form onSubmit={handleUpload}>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} /><br /><br />
+          <input
+            type="file"
+            onChange={(e) => setFile(e.target.files[0])}
+            required
+          />
+          <br />
+          <br />
 
-          <select value={subject} onChange={(e) => setSubject(e.target.value)}>
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            required
+          >
             <option value="">-- Selecciona una materia --</option>
             {materias.map((mat, i) => (
-              <option key={i} value={mat}>{mat}</option>
+              <option key={i} value={mat}>
+                {mat}
+              </option>
             ))}
           </select>
-          <br /><br />
+          <br />
+          <br />
 
-          <select value={classId} onChange={(e) => setClassId(e.target.value)}>
+          <select
+            value={classId}
+            onChange={(e) => setClassId(e.target.value)}
+            required
+          >
             <option value="">-- Selecciona una clase --</option>
             {clases.map((clase) => (
-              <option key={clase.id} value={clase.id}>{clase.nombre}</option>
+              <option key={clase.id} value={clase.id}>
+                {clase.nombre}
+              </option>
             ))}
           </select>
-          <br /><br />
+          <br />
+          <br />
 
           <button type="submit">Subir</button>
 
-          {mensajeSubida && <p style={{ color: 'green' }}>{mensajeSubida}</p>}
-          {errorSubida && <p style={{ color: 'red' }}>{errorSubida}</p>}
+          {mensajeSubida && <p style={{ color: "green" }}>{mensajeSubida}</p>}
+          {errorSubida && <p style={{ color: "red" }}>{errorSubida}</p>}
         </form>
       )}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 }
