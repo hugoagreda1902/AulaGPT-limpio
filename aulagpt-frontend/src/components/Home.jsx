@@ -1,40 +1,42 @@
+// src/components/Home.jsx
+
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Home() {
-  const navigate = useNavigate();
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center p-4">
-      <h1 className="text-4xl font-bold mb-6">Bienvenido a AulaGPT</h1>
-      <p className="mb-8 text-gray-700">Tu asistente educativo inteligente.</p>
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <h1>Bienvenido a AulaGPT</h1>
 
-      <div className="space-x-4">
-        {token ? (
-          <button
-            onClick={() => navigate("/chat")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded"
-          >
-            Acceder al Chat IA
+      {!token ? (
+        <>
+          <p>Para acceder a todas las funcionalidades, por favor inicia sesión o regístrate.</p>
+          <Link to="/login">
+            <button style={{ margin: "10px", padding: "10px 20px" }}>Iniciar Sesión</button>
+          </Link>
+          <Link to="/register">
+            <button style={{ margin: "10px", padding: "10px 20px" }}>Registrarse</button>
+          </Link>
+        </>
+      ) : (
+        <>
+          <p>Ya has iniciado sesión. Puedes acceder al chat o cerrar sesión.</p>
+          <Link to="/chat">
+            <button style={{ margin: "10px", padding: "10px 20px" }}>Ir al Chat</button>
+          </Link>
+          <button onClick={handleLogout} style={{ margin: "10px", padding: "10px 20px" }}>
+            Cerrar Sesión
           </button>
-        ) : (
-          <>
-            <button
-              onClick={() => navigate("/register")}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
-            >
-              Registrarse
-            </button>
-            <button
-              onClick={() => navigate("/login")}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded"
-            >
-              Iniciar sesión
-            </button>
-          </>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
