@@ -18,7 +18,7 @@ from .serializers import (
 from .google_drive.utils import (
     obtener_carpeta_asignatura,
     obtener_o_crear_subcarpeta_usuario,
-    subir_archivo_a_drive
+    subir_archivo_drive
 )
 
 from rest_framework_simplejwt.views import TokenObtainPairView
