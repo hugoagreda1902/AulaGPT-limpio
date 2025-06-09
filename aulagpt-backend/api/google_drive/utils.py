@@ -1,6 +1,7 @@
 import os
 import io
 import json
+import unicodedata
 from django.conf import settings
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
