@@ -4,6 +4,7 @@ import axios from 'axios';
 function SubirDocumento() {
   const [file, setFile] = useState(null);
   const [subject, setSubject] = useState('');
+  const [classId, setClassId] = useState('');  // Nuevo estado para clase
   const [mensaje, setMensaje] = useState('');
   const [error, setError] = useState('');
 
@@ -17,6 +18,11 @@ function SubirDocumento() {
     'Química',
   ];
 
+  // Aquí pones tus clases. Si las tienes dinámicas, tendrás que traerlas de la API.
+  const clases = [
+    { id: 1, nombre: 'Provisional' },
+  ];
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
     setMensaje('');
@@ -25,6 +31,12 @@ function SubirDocumento() {
 
   const handleSubjectChange = (e) => {
     setSubject(e.target.value);
+    setMensaje('');
+    setError('');
+  };
+
+  const handleClassChange = (e) => {
+    setClassId(e.target.value);
     setMensaje('');
     setError('');
   };
@@ -44,9 +56,16 @@ function SubirDocumento() {
       return;
     }
 
+    if (!classId) {
+      setError('Por favor, selecciona una clase.');
+      setMensaje('');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('subject', subject);
+    formData.append('class_id', classId);  // Se envía class_id al backend
 
     try {
       const token = localStorage.getItem('token');
@@ -71,7 +90,7 @@ function SubirDocumento() {
       setError('');
       setFile(null);
       setSubject('');
-      // Reiniciar el formulario
+      setClassId('');
       e.target.reset();
     } catch (err) {
       if (err.response && err.response.status === 401) {
@@ -90,6 +109,7 @@ function SubirDocumento() {
       <form onSubmit={handleUpload}>
         <input type="file" onChange={handleFileChange} />
         <br /><br />
+
         <select value={subject} onChange={handleSubjectChange}>
           <option value="">-- Selecciona una materia --</option>
           {materias.map((mat, i) => (
@@ -99,6 +119,17 @@ function SubirDocumento() {
           ))}
         </select>
         <br /><br />
+
+        <select value={classId} onChange={handleClassChange}>
+          <option value="">-- Selecciona una clase --</option>
+          {clases.map((clase) => (
+            <option key={clase.id} value={clase.id}>
+              {clase.nombre}
+            </option>
+          ))}
+        </select>
+        <br /><br />
+
         <button type="submit">Subir</button>
       </form>
       {mensaje && <p style={{ color: 'green' }}>{mensaje}</p>}
