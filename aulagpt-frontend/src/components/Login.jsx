@@ -29,7 +29,7 @@ function Login() {
         alert("Login correcto");
         console.log("Token de acceso:", data.access);
         // Redirige a la página de subida de documentos
-        navigate("/uploadDocument");
+        navigate("/chat");
       } else {
         setErrorMsg(data.detail || "Error al iniciar sesión");
       }
