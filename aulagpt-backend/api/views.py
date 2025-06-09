@@ -66,7 +66,7 @@ class UserViewSet(viewsets.ModelViewSet):
             user = serializer.save()
             return Response({
                 "message": "Registro exitoso",
-                "user_id": user.user_id,
+                "id": user.id,
                 "email": user.email,
                 "role": user.role
             }, status=status.HTTP_201_CREATED)
