@@ -111,7 +111,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         try:
             carpeta_asignatura_id = obtener_carpeta_asignatura(asignatura)
             carpeta_usuario_id = obtener_o_crear_subcarpeta_usuario(carpeta_asignatura_id, usuario.id)
-            enlace_drive = subir_archivo_a_drive(archivo, carpeta_usuario_id)
+            enlace_drive = subir_archivo_drive(archivo, carpeta_usuario_id)
 
             nuevo_documento = Documents.objects.create(
                 owner=usuario,
