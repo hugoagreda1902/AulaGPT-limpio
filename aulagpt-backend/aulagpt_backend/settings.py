@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
-BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
+# OpenAI API Key
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
+# Google Drive Folders
 GOOGLE_DRIVE_FOLDERS = {
     'matematicas': '1WP1J-sJgNpu5YE_tuNHXfnhZMSwZqQs0',
     'lengua': '1eh4Xl5eaM769N2J7LDfQotR9qH1zgiUv',
@@ -15,66 +19,65 @@ GOOGLE_DRIVE_FOLDERS = {
     'quimica': '1zU4mf5df1plP_88WyZHjZ1XDjACq7NMm',
 }
 
-
+# REST Framework settings
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ),
+    ],
 }
 
-
+# Simple JWT settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Seguridad
-SECRET_KEY = 'fk5dd=8&!c(0on=y6hhhd6hftjq(i)krxv=c45f6tqj$t@uvet'  
+# Security
+SECRET_KEY = 'fk5dd=8&!c(0on=y6hhhd6hftjq(i)krxv=c45f6tqj$t@uvet'
 
-# DEBUG activo para desarrollo. Cambia a False para producción.
+# Debug mode (set to False in production)
 DEBUG = True
 
-# Hosts permitidos (en producción pon aquí los dominios autorizados)
+# Allowed hosts (add your production domains here)
 ALLOWED_HOSTS = ['aulagpt.onrender.com', 'aulagpt.net', 'localhost', '127.0.0.1']
 
-
-# Configuración base de datos MySQL, sin usar entorno ni env()
+# Database configuration (MySQL)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'aulagpt',           # Cambia al nombre real de tu base de datos
-        'USER': 'admin',                # Cambia por tu usuario MySQL
-        'PASSWORD': 'RmHLRrJb19022004%',  # Cambia por tu contraseña MySQL
-        'HOST': 'aulagpt-db.ctqi6iy86bw3.eu-north-1.rds.amazonaws.com',  # Host de tu DB en AWS
+        'NAME': 'aulagpt',           # Change to your actual database name
+        'USER': 'admin',                # Change to your MySQL user
+        'PASSWORD': 'RmHLRrJb19022004%',  # Change to your MySQL password
+        'HOST': 'aulagpt-db.ctqi6iy86bw3.eu-north-1.rds.amazonaws.com',  # Your AWS DB host
         'PORT': '3306',
     }
 }
 
-# URLs y directorios base
+# URLs and directories
 ROOT_URLCONF = 'aulagpt_backend.urls'
 
-# Autenticación
-AUTHENTICATION_BACKENDS = (
+# Authentication
+AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
-)
-AUTH_USER_MODEL = 'api.User'  # Tu modelo personalizado de usuario
+]
+AUTH_USER_MODEL = 'api.User'  # Your custom user model
 
-# Archivos estáticos y media
+# Static files (CSS, JavaScript, images)
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Use os.path.join for cross-platform compatibility
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Use os.path.join for cross-platform compatibility
 
 # Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Para servir estáticos en producción
-    'corsheaders.middleware.CorsMiddleware',       # CORS debe ir antes de CommonMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
+    'corsheaders.middleware.CorsMiddleware',       # CORS middleware (must be before CommonMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,7 +86,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Apps instaladas
+# Installed apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -91,23 +94,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'corsheaders',
-    'rest_framework', 
-    'rest_framework_simplejwt',  
-    'api',  # Tu app principal
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'api',  # Your main app
 ]
 
+# CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 
-# Auto campo por defecto
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],  # Use os.path.join for cross-platform compatibility
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,7 +123,7 @@ TEMPLATES = [
     },
 ]
 
-# Localización
+# Localization
 TIME_ZONE = 'Europe/Madrid'
 LANGUAGE_CODE = 'es-es'
 
@@ -128,7 +131,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-# Seguridad extra para producción
+# Security settings for production
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -136,5 +139,5 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     X_FRAME_OPTIONS = 'DENY'
 
-# Whitenoise - para servir estáticos en producción
+# Whitenoise settings for serving static files in production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

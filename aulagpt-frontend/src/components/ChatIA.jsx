@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
+import { askQuestion } from '../api/dataService'; // Importa la función askQuestion desde dataService.js
 
 function ChatIA() {
   const [input, setInput] = useState("");
@@ -46,19 +46,9 @@ function ChatIA() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "https://aulagpt.onrender.com/api/ask/",
-        { pregunta: input },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const respuestaIA = response.data.respuesta;
+      // Llama a la función askQuestion para enviar la pregunta al backend
+      const response = await askQuestion(input);
+      const respuestaIA = response.answer; // Ajusta esto según la estructura de la respuesta de tu API
       setMensajes((prev) => [...prev, { autor: "ia", texto: respuestaIA }]);
     } catch (err) {
       console.error(err);

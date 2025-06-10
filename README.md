@@ -5,8 +5,8 @@ AulaGPT es un asistente inteligente para alumnos y profesores, diseñado para me
 
 ```plaintext
 Aula-GPT/
-├── aula-gpt-backend/                           # Backend: API, lógica de servidor y base de datos.
-│   ├── api/                                    # Archivos de la API (modelos, vistas, serializadores).
+├── aula-gpt-backend/                           
+│   ├── api/                                    
 |   |   ├── __pyache__/   
 |   |   ├── google_drive/                                    
 │   │   |   ├── __pyache__ 
@@ -15,32 +15,32 @@ Aula-GPT/
 │   │   |   └── utils.py
 |   |   ├── migrations/
 |   |   ├── __init__.py
-│   │   ├── admin.py                            # Configuración del panel de administración.
-│   │   ├── apps.py                             # Configuración de la app.
-│   │   ├── forms.py                           # Definición de los modelos de datos.
-│   │   ├── models.py                           # Modelos de la base de datos.
-│   │   ├── serializers.py                      # Serializadores para la API.
-│   │   ├── urls.py                             # Pruebas unitarias.
-│   │   └── views.py                           # Vistas de la API.
+│   │   ├── admin.py                            
+│   │   ├── apps.py                             
+│   │   ├── forms.py                          
+│   │   ├── models.py                       
+│   │   ├── serializers.py                      
+│   │   ├── urls.py                           
+│   │   └── views.py                           
 │   ├── aula_backend/ 
 |   |   ├── __pyache__/ 
 |   |   ├── __init__.py
 │   |   ├── asgi.py    
-│   |   ├── settings.py                         # Configuración ASGI.
-│   |   ├── urls.py                             # Configuración de URLs.
+│   |   ├── settings.py                         
+│   |   ├── urls.py                             
 │   |   └── wsgi.py
 │   ├── venv/
 │   ├── .gitignore
 │   ├── manage.py
 │   └── requirements.txt
-├── aula-gpt-frontend/                          # Frontend: Interfaz de usuario y lógica en React.
-│   ├── public/                                 # Archivos estáticos (HTML, imágenes).
-│   │   ├── index.html                          # Documento HTML principal.
-│   ├── src/                                    # Código fuente del frontend.
-│   │   ├── api/                                # Lógica de interacción con la API.
+├── aula-gpt-frontend/                          
+│   ├── public/                                 
+│   │   ├── index.html                          
+│   ├── src/                                    
+│   │   ├── api/                                
 │   │   |   ├── axiosConfig.js                    
-│   │   │   └── dataService.js                  # Servicio para realizar peticiones HTTP.
-│   │   ├── components/                                # Lógica de interacción con la API.
+│   │   │   └── dataService.js                  
+│   │   ├── components/
 │   │   |   ├── ChatIA.jsx
 │   │   │   ├── Home.jsx
 │   │   │   ├── Login.jsx
@@ -63,10 +63,10 @@ Aula-GPT/
 │   ├── package-lock.json
 │   ├── package.json
 │   └── README.md
-├── package.json                                # Información y dependencias globales.
-├── package-lock.json                           # Bloqueo de versiones de dependencias.
-├── README.md                                   # Documentación general del proyecto.
-└── requirements.txt                            # Dependencias globales del backend.
+├── package.json                                
+├── package-lock.json                           
+├── README.md                                   
+└── requirements.txt                            
 =======
 # AulaGPT
 >>>>>>> 50fb2c1e (Initial commit)

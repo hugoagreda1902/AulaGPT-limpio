@@ -1,3 +1,4 @@
+# api/views.py
 from rest_framework import viewsets, status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -24,8 +25,14 @@ from .google_drive.utils import (
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en serializers.py
 
+# Import OpenAI
+import openai
+from django.conf import settings  # Import settings to access API key
+
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
 
 # --- Ping DB ---
 @api_view(['GET'])
@@ -39,6 +46,7 @@ def ping_db(request):
         db_status = f"ERROR: {e}"
     elapsed = time.time() - start
     return Response({"db_status": db_status, "elapsed": elapsed})
+
 
 # --- Vista protegida ---
 class MiVistaProtegida(APIView):
@@ -129,11 +137,13 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 # --- Clases ---
 class ClassViewSet(viewsets.ModelViewSet):
     queryset = Class.objects.all()
     serializer_class = ClassSerializer
     permission_classes = [permissions.IsAuthenticated]
+
 
 # --- Asociación usuario-clase ---
 class UserClassViewSet(viewsets.ModelViewSet):
@@ -141,44 +151,59 @@ class UserClassViewSet(viewsets.ModelViewSet):
     serializer_class = UserClassSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 # --- Tests y actividad ---
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class TestQuestionViewSet(viewsets.ModelViewSet):
     queryset = TestQuestion.objects.all()
     serializer_class = TestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
+
 
 class TestAnswerViewSet(viewsets.ModelViewSet):
     queryset = TestAnswer.objects.all()
     serializer_class = TestAnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
+
 # --- Endpoint para preguntas a la IA ---
 class AskAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        pregunta = request.data.get('question')
-        if not pregunta:
+        question = request.data.get('question')
+        if not question:
             return Response({"error": "Debe enviar una pregunta"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
-            # Aquí llama a la IA (p. ej. OpenAI) para obtener la respuesta
-            # respuesta = obtener_respuesta_ia(pregunta)
+            # Get the OpenAI API key from Django settings
+            openai.api_key = settings.OPENAI_API_KEY
 
-            # Respuesta de prueba para demo:
-            respuesta = f"Respuesta simulada a la pregunta: {pregunta}"
+            # Use OpenAI to get the answer
+            response = openai.Completion.create(
+                engine="text-davinci-003",  # Choose the engine (e.g., gpt-3.5-turbo, gpt-4)
+                prompt=question,
+                max_tokens=150,  # Adjust as needed
+                n=1,
+                stop=None,
+                temperature=0.7,  # Adjust for creativity
+            )
+            answer = response.choices[0].text.strip()
 
-            return Response({"answer": respuesta})
+            return Response({"answer": answer})
 
         except Exception as e:
+            # Log the error for debugging purposes
+            traceback.print_exc()  # Imprime el traceback completo en la consola
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
