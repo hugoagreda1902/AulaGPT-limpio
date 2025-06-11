@@ -8,10 +8,6 @@ export const registerUser = (user) =>
 export const loginUser = (creds) =>
   API.post('/token/', creds).then(res => res.data);
 
-// Listar asignaturas (antes classes)
-export const getSubjects = () =>
-  API.get('/subjects/').then(res => res.data);
-
 // Chat / Resumen
 export const askQuestion = (question, subjectId, action = 'answer') =>
   API.post('/ask/', { question, subject_id: subjectId, action }).then(res => res.data);
