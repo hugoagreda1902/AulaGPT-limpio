@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 from .models import (
-    User, Class, UserClass, Documents, Tests, TestQuestion,
+    User, Documents, Tests, TestQuestion,
     TestAnswer, Activity, ChatHistory
 )
 
@@ -30,20 +30,10 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('email', 'name', 'surname')
     ordering = ('email',)
 
-@admin.register(Class)
-class ClassAdmin(admin.ModelAdmin):
-    list_display = ('class_id', 'class_name', 'access_code', 'drive_folder_id')
-    search_fields = ('class_name', 'access_code')
-
-@admin.register(UserClass)
-class UserClassAdmin(admin.ModelAdmin):
-    list_display = ('user', 'class_obj')
-    search_fields = ('user__email', 'class_obj__class_name')
-
 @admin.register(Documents)
 class DocumentsAdmin(admin.ModelAdmin):
-    list_display = ('document_id', 'file_name', 'owner', 'class_obj', 'subject', 'upload_date', 'drive_link')
-    list_filter = ('class_obj', 'upload_date', 'file_type')
+    list_display = ('document_id', 'file_name', 'owner', 'subject', 'upload_date', 'drive_link')
+    list_filter = ('upload_date', 'file_type')
     search_fields = ('file_name', 'owner__email')
 
 @admin.register(Tests)
@@ -65,12 +55,13 @@ class TestAnswerAdmin(admin.ModelAdmin):
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = ('activity_id', 'user', 'subject', 'activity_type', 'timestamp')
+    list_display = ('activity_id', 'user', 'activity_type', 'timestamp')
     list_filter = ('activity_type', 'timestamp')
-    search_fields = ('user__email', 'subject__class_name')
-
+    search_fields = ('user__email',)
+    
 @admin.register(ChatHistory)
 class ChatHistoryAdmin(admin.ModelAdmin):
     list_display = ('history_id', 'user', 'subject', 'question', 'timestamp')
-    list_filter = ('subject', 'timestamp')
+    list_filter = ['timestamp']  # Antes daba error porque lo pusiste como tupla con un string no válido
     search_fields = ('user__email', 'question')
+

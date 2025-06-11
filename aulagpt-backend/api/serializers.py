@@ -1,7 +1,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
+from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity
 import logging
 from rest_framework import status
 from rest_framework.response import Response
@@ -86,24 +86,6 @@ class DocumentsSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         raise NotImplementedError("La creación debe hacerse desde el ViewSet.")
-
-class ClassSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Class
-        fields = '__all__'
-
-    def create(self, validated_data):
-        folder_name = validated_data.get('name')
-        # Aquí debes llamar a la función que crea carpeta en Drive, no subir archivo
-        from api.google_drive.utils import crear_carpeta_drive
-        folder_id = crear_carpeta_drive(folder_name)
-        validated_data['drive_folder_id'] = folder_id
-        return super().create(validated_data)
-
-class UserClassSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserClass
-        fields = '__all__'
 
 class TestsSerializer(serializers.ModelSerializer):
     class Meta:

@@ -2,16 +2,13 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ping_db, UserViewSet, ClassViewSet, UserClassViewSet,
-    DocumentsViewSet, TestsViewSet, TestQuestionViewSet,
+    ping_db, UserViewSet, DocumentsViewSet, TestsViewSet, TestQuestionViewSet,
     TestAnswerViewSet, ActivityViewSet, CustomTokenObtainPairView, AskAPIView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
-router.register(r'classes', ClassViewSet)
-router.register(r'userclasses', UserClassViewSet)
 router.register(r'documents', DocumentsViewSet, basename='documents')
 router.register(r'tests', TestsViewSet)
 router.register(r'testquestions', TestQuestionViewSet)

@@ -45,38 +45,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.name} {self.surname} ({self.role})"
 
-# --- Clases y relación M2M ---
-class Class(models.Model):
-    class_id = models.AutoField(primary_key=True)
-    class_name = models.CharField(max_length=100)
-    access_code = models.CharField(max_length=20, unique=True)
-    drive_folder_id = models.CharField(max_length=200, blank=True, null=True)
-
-    users = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through='UserClass',
-        related_name='classes'
-    )
-
-    def __str__(self):
-        return self.class_name
-
-class UserClass(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
-    class_obj = models.ForeignKey(
-        Class,
-        on_delete=models.CASCADE
-    )
-
-    class Meta:
-        unique_together = ('user', 'class_obj')
-
-    def __str__(self):
-        return f"{self.user.email} in {self.class_obj.class_name}"
-
 # --- Documentos ---
 class Documents(models.Model):
     document_id = models.AutoField(primary_key=True)
@@ -85,13 +53,6 @@ class Documents(models.Model):
         on_delete=models.CASCADE,
         related_name='documents',
         null=True
-    )
-    class_obj = models.ForeignKey(
-        Class,
-        on_delete=models.CASCADE,
-        related_name='documents',
-        null=True,
-        blank=True
     )
     subject = models.CharField(max_length=100, default='Sin asignar')
     file_name = models.CharField(max_length=200)
@@ -177,13 +138,6 @@ class Activity(models.Model):
         on_delete=models.CASCADE,
         related_name='activities'
     )
-    subject = models.ForeignKey(
-        Class,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='activities'
-    )
     ACTIVITY_TYPES = (
         ('upload',  'Upload'),
         ('test',    'Test'),
@@ -204,15 +158,10 @@ class ChatHistory(models.Model):
         on_delete=models.CASCADE,
         related_name='chat_messages'
     )
-    subject = models.ForeignKey(
-        Class,
-        on_delete=models.CASCADE,
-        related_name='chat_messages'
-    )
     question = models.TextField()
     response = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    subject = models.CharField(max_length=100, default='Sin asignar')
 
     def __str__(self):
-        return f"{self.user.email} → {self.subject.class_name} [{self.timestamp:%Y-%m-%d %H:%M}]"
- 
+       return f"{self.user.email} → [{self.timestamp:%Y-%m-%d %H:%M}]" 

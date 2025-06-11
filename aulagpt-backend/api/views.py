@@ -10,9 +10,9 @@ from django.db import connection
 import time
 import traceback
 
-from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
+from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
 from .serializers import (
-    RegisterSerializer, UserSerializer, DocumentsSerializer, ClassSerializer, UserClassSerializer,
+    RegisterSerializer, UserSerializer, DocumentsSerializer,
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
 )
 
@@ -99,22 +99,20 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # <- Añadido para upload
+    parser_classes = [MultiPartParser, FormParser]  # Para subir archivos
 
     def create(self, request, *args, **kwargs):
         usuario = request.user
         archivo = request.FILES.get('file')
         asignatura = request.data.get('subject')
-        clase_id = request.data.get('class_id')
 
-        if not archivo or not asignatura or not clase_id:
+        if not archivo or not asignatura:
             return Response(
-                {'error': 'El archivo, la asignatura y la clase son obligatorios.'},
+                {'error': 'El archivo y la asignatura son obligatorios.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -125,7 +123,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
             nuevo_documento = Documents.objects.create(
                 owner=usuario,
-                class_id_id=clase_id,
                 subject=asignatura,
                 file_name=archivo.name,
                 file_type=archivo.content_type,
@@ -137,20 +134,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# --- Clases ---
-class ClassViewSet(viewsets.ModelViewSet):
-    queryset = Class.objects.all()
-    serializer_class = ClassSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-
-# --- Asociación usuario-clase ---
-class UserClassViewSet(viewsets.ModelViewSet):
-    queryset = UserClass.objects.all()
-    serializer_class = UserClassSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
 
 # --- Tests y actividad ---
