@@ -108,7 +108,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         usuario = request.user
         archivo = request.FILES.get('file')
-        asignatura = request.data.get('subject')
+        asignatura = request.data.get('subject')  # Aquí usas 'subject'
 
         if not archivo or not asignatura:
             return Response(
@@ -117,10 +117,14 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             )
 
         try:
+            # Obtienes la carpeta correspondiente a la asignatura
             carpeta_asignatura_id = obtener_carpeta_asignatura(asignatura)
+            # Obtienes o creas la subcarpeta para el usuario dentro de la asignatura
             carpeta_usuario_id = obtener_o_crear_subcarpeta_usuario(carpeta_asignatura_id, usuario.id)
+            # Subes el archivo a Drive y obtienes el enlace
             enlace_drive = subir_archivo_drive(archivo, carpeta_usuario_id)
 
+            # Creas el documento con 'subject'
             nuevo_documento = Documents.objects.create(
                 owner=usuario,
                 subject=asignatura,
@@ -134,7 +138,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 # --- Tests y actividad ---
 class TestsViewSet(viewsets.ModelViewSet):
@@ -165,13 +168,13 @@ class AskAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        question    = request.data.get('question')
-        subject_id  = request.data.get('subject_id')
-        action      = request.data.get('action', 'answer')  # 'answer' o 'summary'
+        question = request.data.get('question')
+        subject_id = request.data.get('subject')
+        action = request.data.get('action', 'answer')
 
         if not question or not subject_id:
             return Response(
-                {"error": "Faltan campos requeridos (question o subject_id)"},
+                {"error": "Faltan campos requeridos (question o subject)"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -183,7 +186,6 @@ class AskAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Construcción del prompt siguiendo lo acordado
         system_prompt = (
             "Eres **AulaGPT**, un asistente educativo para la asignatura "
             f"{subject.class_name}. Tu conocimiento se basa únicamente en los "
@@ -204,13 +206,12 @@ class AskAPIView(APIView):
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system",  "content": system_prompt},
-                    {"role": "user",    "content": question}
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question}
                 ]
             )
             answer_text = completion.choices[0].message["content"].strip()
 
-            # Guardar en ChatHistory
             ChatHistory.objects.create(
                 user=request.user,
                 subject=subject,
@@ -218,7 +219,6 @@ class AskAPIView(APIView):
                 response=answer_text
             )
 
-            # Registrar la actividad (upload/test/answer/summary)
             Activity.objects.create(
                 user=request.user,
                 subject=subject,
@@ -227,7 +227,7 @@ class AskAPIView(APIView):
 
             return Response({
                 "question": question,
-                "answer":   answer_text
+                "answer": answer_text
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
