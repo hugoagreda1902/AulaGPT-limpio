@@ -18,7 +18,7 @@ export const uploadDocument = (file, subjectId) => {
   form.append('file', file);
 
   // Si el backend espera el campo "subject" (no class_id)
-  if (subjectId) form.append('subject', subjectId);
+  if (subject) form.append('subject', subject);
 
   return API.post('/documents/', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
