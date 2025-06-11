@@ -1,12 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 function Home() {
-  const token = localStorage.getItem("token");
+  const [token, setToken] = useState(localStorage.getItem("token"));
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Cuando el token cambie en localStorage (ej. login o logout), actualizar el estado
+    const onStorageChange = () => {
+      setToken(localStorage.getItem("token"));
+    };
+
+    window.addEventListener("storage", onStorageChange);
+
+    return () => window.removeEventListener("storage", onStorageChange);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setToken(null); // Actualizamos estado para que la UI cambie
     navigate("/login");
   };
 
