@@ -178,3 +178,16 @@
     gap: 0.5rem;
   }
 }
+
+.chat-footer-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+
+.timestamp {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
