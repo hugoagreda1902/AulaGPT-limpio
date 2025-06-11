@@ -1,6 +1,6 @@
 // src/components/ChatIA.jsx
 import React, { useState, useEffect, useRef } from "react";
-import "../styles/chatis.css";                // Importa tu CSS personalizado
+import "../styles/ChatIA.css";                // Importa tu CSS personalizado
 import { getClasses, askQuestion, uploadDocument } from "../api/dataService";
 
 export default function ChatIA() {
