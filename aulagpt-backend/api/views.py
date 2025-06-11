@@ -178,17 +178,24 @@ class AskAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Intentamos obtener un documento con ese subject_id para sacar el nombre de la asignatura
         try:
-            subject = Class.objects.get(class_id=subject_id)
-        except Class.DoesNotExist:
+            document = Documents.objects.filter(subject=subject_id).first()
+            if not document:
+                return Response(
+                    {"error": "Asignatura no encontrada"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            subject_name = document.subject  # El nombre o código de la asignatura
+        except Exception:
             return Response(
-                {"error": "Asignatura no encontrada"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Error buscando la asignatura"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
         system_prompt = (
-            "Eres **AulaGPT**, un asistente educativo para la asignatura "
-            f"{subject.class_name}. Tu conocimiento se basa únicamente en los "
+            f"Eres **AulaGPT**, un asistente educativo para la asignatura "
+            f"{subject_name}. Tu conocimiento se basa únicamente en los "
             "documentos que el usuario ha subido.\n\n"
             "Reglas de respuesta:\n"
             "1. **Explicaciones**: claras y concisas, pasos numerados si hay varios.\n"
@@ -212,16 +219,17 @@ class AskAPIView(APIView):
             )
             answer_text = completion.choices[0].message["content"].strip()
 
+            # Guardamos en historial usando el documento (subject_id) para referenciar la asignatura
             ChatHistory.objects.create(
                 user=request.user,
-                subject=subject,
+                subject=document.subject,  # guardamos el nombre o código del subject
                 question=question,
                 response=answer_text
             )
 
             Activity.objects.create(
                 user=request.user,
-                subject=subject,
+                subject=document.subject,
                 activity_type='summary' if action == 'summary' else 'answer'
             )
 
