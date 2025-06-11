@@ -1,0 +1,126 @@
+/* Contenedor principal del chat */
+.chat-container {
+  background-color: white;
+  width: 100%;
+  max-width: 768px;
+  height: 85vh;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Encabezado superior del chat */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f9fafb;
+}
+
+/* Selector de asignaturas */
+.subject-selector {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: border-color 0.2s ease;
+}
+
+.subject-selector:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* Zona del cuerpo del chat */
+.chat-body {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #f9fafb;
+}
+
+/* Burbujas de mensajes */
+.chat-bubble {
+  max-width: 75%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  animation: fadeIn 0.3s ease-out;
+  word-break: break-word;
+}
+
+.user-msg {
+  background-color: #dbeafe;
+  align-self: flex-end;
+}
+
+.assistant-msg {
+  background-color: #f3f4f6;
+  align-self: flex-start;
+}
+
+/* Pie de entrada del chat */
+.chat-footer {
+  display: flex;
+  gap: 8px;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+.chat-input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: border-color 0.2s ease;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.chat-button {
+  background-color: #3b82f6;
+  color: white;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.chat-button:hover {
+  background-color: #2563eb;
+}
+
+.chat-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Animación para los mensajes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
