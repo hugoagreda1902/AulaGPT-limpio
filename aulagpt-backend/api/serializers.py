@@ -79,7 +79,7 @@ class DocumentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Documents
         fields = [
-            'document_id', 'owner', 'class_id', 'subject',
+            'document_id', 'owner', 'subject',
             'file_name', 'file_type', 'upload_date', 'drive_link'
         ]
         read_only_fields = ['document_id', 'upload_date', 'drive_link', 'file_name', 'file_type']
