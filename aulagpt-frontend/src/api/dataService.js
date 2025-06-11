@@ -13,7 +13,7 @@ export const askQuestion = (question, subjectId, action = 'answer') =>
   API.post('/ask/', { question, subject_id: subjectId, action }).then(res => res.data);
 
 // Subida de documento
-export const uploadDocument = (file, subjectId) => {
+export const uploadDocument = (file, subject) => {
   const form = new FormData();
   form.append('file', file);
 
