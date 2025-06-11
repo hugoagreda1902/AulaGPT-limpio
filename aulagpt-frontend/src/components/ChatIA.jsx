@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../styles/ChatIA.css";
-import { getClasses, askQuestion, uploadDocument } from "../api/dataService";
+import { askQuestion, uploadDocument } from "../api/dataService";
 
 export default function ChatIA() {
   const [subjects, setSubjects] = useState([]);
