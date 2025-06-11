@@ -1,105 +1,176 @@
+// src/components/ChatIA.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { askQuestion } from "../api/dataService"; // Ruta correcta al servicio
-import "../styles/ChatIA.css"; // ✅ Ruta actualizada a tu carpeta de estilos
+import "../styles/chatis.css";                // Importa tu CSS personalizado
+import { getClasses, askQuestion, uploadDocument } from "../api/dataService";
 
-function ChatIA() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
-
+export default function ChatIA() {
   const [subjects, setSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [subjectId, setSubjectId] = useState(null);
 
-  const chatEndRef = useRef(null);
+  const [history, setHistory] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  const [showUpload, setShowUpload] = useState(false);
+  const [file, setFile] = useState(null);
+  const [uploadMsg, setUploadMsg] = useState("");
+  const [uploadErr, setUploadErr] = useState("");
+
+  const chatRef = useRef();
+
+  // Traer clases al inicio
   useEffect(() => {
-    const fetchSubjects = async () => {
-      const asignaturasConDocs = ["Matemáticas", "Lengua", "Historia"];
-      setSubjects(asignaturasConDocs);
-      setSelectedSubject(asignaturasConDocs[0] || "");
-    };
-
-    fetchSubjects();
+    getClasses().then(data => {
+      setSubjects(data);
+      if (data.length) setSubjectId(data[0].class_id);
+    }).catch(console.error);
   }, []);
 
+  // Cargar historial al cambiar de asignatura
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!subjectId) return;
+    fetch(`${process.env.REACT_APP_API_BASE_URL}/chat-history/?subject_id=${subjectId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+    })
+      .then(res => res.json())
+      .then(setHistory)
+      .catch(console.error);
+  }, [subjectId]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !selectedSubject) return;
+  // Auto-scroll
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [history, loading]);
 
-    const newMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, newMessage]);
+  const send = async (action = "answer") => {
+    if (!input.trim() || !subjectId) return;
+    setError("");
     setLoading(true);
 
+    const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
+    setHistory(h => [...h, userMsg]);
+    const question = input;
+    setInput("");
+
     try {
-      const response = await askQuestion(input, selectedSubject);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response.data.respuesta },
-      ]);
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Error al obtener respuesta." },
-      ]);
+      const { answer } = await askQuestion(question, subjectId, action);
+      const botMsg = { timestamp: new Date(), autor: "ia", texto: answer };
+      setHistory(h => [...h, botMsg]);
+    } catch (e) {
+      console.error(e);
+      setError("Error comunicándose con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    setUploadErr("");
+    setUploadMsg("");
+
+    if (!file || !subjectId) {
+      setUploadErr("Selecciona un archivo y una asignatura.");
+      return;
     }
 
-    setInput("");
-    setLoading(false);
+    try {
+      await uploadDocument(file, subjectId);
+      setUploadMsg("Documento subido correctamente.");
+      setFile(null);
+    } catch {
+      setUploadErr("Error al subir el documento.");
+    }
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen flex items-center justify-center p-6">
-      <div className="chat-container">
-        <div className="chat-header">
-          <h1 className="text-xl font-semibold">AulaGPT</h1>
-          <select
-            className="subject-selector"
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-          >
-            {subjects.map((subj) => (
-              <option key={subj} value={subj}>
-                {subj}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="chat-body">
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`chat-bubble ${msg.role === "user" ? "user-msg" : "assistant-msg"}`}
-            >
-              {msg.content}
-            </div>
+    <div className="chat-container">
+      <div className="chat-header">
+        <select
+          className="subject-selector"
+          value={subjectId || ""}
+          onChange={e => setSubjectId(Number(e.target.value))}
+        >
+          {subjects.map(s => (
+            <option key={s.class_id} value={s.class_id}>
+              {s.class_name}
+            </option>
           ))}
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className="chat-footer">
-          <input
-            type="text"
-            placeholder="Escribe tu pregunta..."
-            className="chat-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          />
-          <button
-            className="chat-button"
-            onClick={handleSend}
-            disabled={loading}
-          >
-            {loading ? "..." : "Enviar"}
-          </button>
-        </div>
+        </select>
+        <button
+          className="chat-button--toggle-upload"
+          onClick={() => setShowUpload(prev => !prev)}
+        >
+          {showUpload ? "Ocultar subida" : "Subir documento"}
+        </button>
       </div>
+
+      <div className="chat-body" ref={chatRef}>
+        {history.map((msg, i) => (
+          <div
+            key={i}
+            className={`chat-bubble ${
+              msg.autor === "usuario" ? "user-msg" : "assistant-msg"
+            }`}
+          >
+            <p className="text-xs text-gray-500 mb-1">
+              {new Date(msg.timestamp).toLocaleTimeString()}
+            </p>
+            <p>{msg.texto}</p>
+          </div>
+        ))}
+        {loading && <p className="text-center text-gray-500">Cargando…</p>}
+      </div>
+
+      <div className="chat-footer">
+        <input
+          type="text"
+          className="chat-input"
+          placeholder="Escribe tu pregunta…"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && send("answer")}
+          disabled={loading}
+        />
+        <button
+          className="chat-button chat-button--send"
+          onClick={() => send("answer")}
+          disabled={loading}
+        >
+          Enviar
+        </button>
+        <button
+          className="chat-button chat-button--summary"
+          onClick={() => send("summary")}
+          disabled={loading}
+        >
+          Resumir
+        </button>
+      </div>
+
+      {error && <p className="chat-error">{error}</p>}
+
+      {showUpload && (
+        <div className="upload-section">
+          <form onSubmit={handleUpload} className="space-y-2">
+            <input
+              type="file"
+              onChange={e => setFile(e.target.files[0])}
+            />
+            <button
+              type="submit"
+              className="chat-button chat-button--send"
+            >
+              Subir
+            </button>
+          </form>
+          {uploadErr && <p className="chat-error">{uploadErr}</p>}
+          {uploadMsg && <p className="chat-success">{uploadMsg}</p>}
+        </div>
+      )}
     </div>
   );
 }
-
-export default ChatIA;
