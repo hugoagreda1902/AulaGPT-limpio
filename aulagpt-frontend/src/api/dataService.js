@@ -1,37 +1,29 @@
 // src/api/dataService.js
 import API from './axiosConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL; // Importa la URL base de la API desde las variables de entorno
+// Registro de usuario
+export const registerUser = (user) =>
+  API.post('/users/register/', user).then(res => res.data);
 
-// Añadir un usuario
-export const addUser = async (user) => {
-  try {
-    const response = await API.post('/users/', user);
-    return response.data;  // Lo que devuelva tu backend (por ejemplo, ID o usuario creado)
-  } catch (error) {
-    console.error("Error adding user: ", error);
-    throw error; // Para manejarlo donde llames la función
-  }
-};
+// Login: simplejwt
+export const loginUser = (creds) =>
+  API.post('/token/', creds).then(res => res.data);
 
-// Obtener usuarios
-export const getUsers = async () => {
-  try {
-    const response = await API.get('/users');
-    return response.data;  // Lista de usuarios que devuelve el backend
-  } catch (error) {
-    console.error("Error getting users: ", error);
-    throw error;
-  }
-};
+// Listar clases
+export const getClasses = () =>
+  API.get('/classes/').then(res => res.data);
 
-// Preguntar a la IA
-export const askQuestion = async (question) => {
-  try {
-    const response = await API.post(`${API_BASE_URL}/ask/`, { question }); // Usa la URL base de la API
-    return response.data;
-  } catch (error) {
-    console.error("Error asking question: ", error);
-    throw error;
-  }
+// Chat / Resumen
+export const askQuestion = (question, subject_id, action='answer') =>
+  API.post('/ask/', { question, subject_id, action }).then(res => res.data);
+
+// Subida de documento
+export const uploadDocument = (file, subject_id) => {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('class_id', subject_id);
+  form.append('subject', subject_id);
+  return API.post('/documents/', form, {
+    headers: {'Content-Type':'multipart/form-data'}
+  }).then(res => res.data);
 };

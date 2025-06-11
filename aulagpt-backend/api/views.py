@@ -10,7 +10,7 @@ from django.db import connection
 import time
 import traceback
 
-from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity
+from .models import User, Class, UserClass, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
 from .serializers import (
     RegisterSerializer, UserSerializer, DocumentsSerializer, ClassSerializer, UserClassSerializer,
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
@@ -28,6 +28,7 @@ from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en
 # Import OpenAI
 import openai
 from django.conf import settings  # Import settings to access API key
+import os
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -177,33 +178,78 @@ class ActivityViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-# --- Endpoint para preguntas a la IA ---
 class AskAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        question = request.data.get('question')
-        if not question:
-            return Response({"error": "Debe enviar una pregunta"}, status=status.HTTP_400_BAD_REQUEST)
+        question    = request.data.get('question')
+        subject_id  = request.data.get('subject_id')
+        action      = request.data.get('action', 'answer')  # 'answer' o 'summary'
+
+        if not question or not subject_id:
+            return Response(
+                {"error": "Faltan campos requeridos (question o subject_id)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            # Get the OpenAI API key from Django settings
+            subject = Class.objects.get(class_id=subject_id)
+        except Class.DoesNotExist:
+            return Response(
+                {"error": "Asignatura no encontrada"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Construcción del prompt siguiendo lo acordado
+        system_prompt = (
+            "Eres **AulaGPT**, un asistente educativo para la asignatura "
+            f"{subject.class_name}. Tu conocimiento se basa únicamente en los "
+            "documentos que el usuario ha subido.\n\n"
+            "Reglas de respuesta:\n"
+            "1. **Explicaciones**: claras y concisas, pasos numerados si hay varios.\n"
+            "2. **Resúmenes**: máximo 5 viñetas.\n"
+            "3. **Tests** (si action=='answer' y se piden tests): genera preguntas "
+            "de opción múltiple A–D y devuelve un JSON con campos "
+            "[{\"question\":…, \"options\":[…], \"correct\":\"B\"},…].\n"
+            "4. **Tono**: amigable y profesional.\n"
+            "5. **Límites**: no inventes nada fuera de los documentos subidos.\n"
+        )
+
+        try:
             openai.api_key = settings.OPENAI_API_KEY
 
-            # Use OpenAI to get the answer
-            response = openai.Completion.create(
-                engine="text-davinci-003",  # Choose the engine (e.g., gpt-3.5-turbo, gpt-4)
-                prompt=question,
-                max_tokens=150,  # Adjust as needed
-                n=1,
-                stop=None,
-                temperature=0.7,  # Adjust for creativity
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system",  "content": system_prompt},
+                    {"role": "user",    "content": question}
+                ]
             )
-            answer = response.choices[0].text.strip()
+            answer_text = completion.choices[0].message["content"].strip()
 
-            return Response({"answer": answer})
+            # Guardar en ChatHistory
+            ChatHistory.objects.create(
+                user=request.user,
+                subject=subject,
+                question=question,
+                response=answer_text
+            )
+
+            # Registrar la actividad (upload/test/answer/summary)
+            Activity.objects.create(
+                user=request.user,
+                subject=subject,
+                activity_type='summary' if action == 'summary' else 'answer'
+            )
+
+            return Response({
+                "question": question,
+                "answer":   answer_text
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            # Log the error for debugging purposes
-            traceback.print_exc()  # Imprime el traceback completo en la consola
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            traceback.print_exc()
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
