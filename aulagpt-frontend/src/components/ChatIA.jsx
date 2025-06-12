@@ -27,9 +27,8 @@ export default function ChatIA() {
     }
   }, [history, loading]);
 
-  const isTestReadyToSend = () => {
-    return testQuestions.length > 0 && testQuestions.every((_, i) => selectedAnswers[i]);
-  };
+  const isTestReadyToSend = () =>
+    testQuestions.length > 0 && testQuestions.every((_, i) => selectedAnswers[i]);
 
   const send = async (action = "answer") => {
     if (!input.trim() || !subject) return;
@@ -38,7 +37,6 @@ export default function ChatIA() {
     setTestQuestions([]);
     setSelectedAnswers({});
 
-    // Agrega mensaje de usuario
     const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
     setHistory(prev => [...prev, userMsg]);
     const question = input;
@@ -48,10 +46,6 @@ export default function ChatIA() {
       const actualAction = question.toLowerCase().includes("test") ? "test" : action;
       const data = await askQuestion(question, subject, actualAction);
 
-      // DEBUG: ver en consola la respuesta completa
-      console.log("📥 RESPUESTA /ask/:", data);
-
-      // Manejo de errores del servidor
       if (data.error) {
         const msg = data.error.includes("JSON válido")
           ? "❌ No se pudo generar el test. Asegúrate de que hay documentos subidos y reformula tu pregunta."
@@ -60,17 +54,13 @@ export default function ChatIA() {
         return;
       }
 
-      // Flujo de test interactivo
       if (actualAction === "test" && Array.isArray(data.test)) {
         setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Aquí tienes tu test interactivo:" }]);
         setTestQuestions(data.test);
         return;
       }
 
-      // Flujo normal de respuesta o resumen con fallback
-      const text = data.answer
-        ? data.answer
-        : "❌ Respuesta vacía, revisa la consola.";
+      const text = data.answer ? data.answer : "❌ Respuesta vacía, revisa la consola.";
       const botMsg = { timestamp: new Date(), autor: "ia", texto: text };
       setHistory(prev => [...prev, botMsg]);
 
@@ -120,6 +110,7 @@ export default function ChatIA() {
 
   return (
     <div className="chat-container">
+      {/* Encabezado */}
       <div className="chat-header">
         <h1 className="chat-title">AulaGPT</h1>
         <select
@@ -131,6 +122,7 @@ export default function ChatIA() {
         </select>
       </div>
 
+      {/* Cuerpo del chat */}
       <div className="chat-body" ref={chatRef}>
         {history.map((msg, i) => {
           const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
@@ -139,34 +131,37 @@ export default function ChatIA() {
               key={i}
               className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}
             >
-              <p className="timestamp">
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </p>
+              <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
               {!isTestIntro && <p>{msg.texto}</p>}
             </div>
           );
         })}
 
+        {/* Preguntas del test */}
         {testQuestions.map((q, i) => (
           <div key={i} className="test-question">
             <p><strong>{i + 1}. {q.question}</strong></p>
-            {q.options.map((opt, idx) => (
-              <label key={idx}>
-                <input
-                  type="radio"
-                  name={`question-${i}`}
-                  value={String.fromCharCode(65 + idx)}
-                  checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
-                  onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
-                /> {String.fromCharCode(65 + idx)}. {opt}
-              </label>
-            ))}
+            <div className="test-options">
+              {q.options.map((opt, idx) => (
+                <label key={idx}>
+                  <input
+                    type="radio"
+                    name={`question-${i}`}
+                    value={String.fromCharCode(65 + idx)}
+                    checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
+                    onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
+                  />
+                  {String.fromCharCode(65 + idx)}. {opt}
+                </label>
+              ))}
+            </div>
           </div>
         ))}
 
         {loading && <p className="loading-msg">Cargando…</p>}
       </div>
 
+      {/* Footer de entrada */}
       <div className="chat-footer">
         <input
           type="text"
@@ -181,15 +176,20 @@ export default function ChatIA() {
           <button
             className="chat-button"
             onClick={() => setShowUpload(prev => !prev)}
-          >Subir documento</button>
+          >
+            Subir documento
+          </button>
           <button
             className="chat-button"
             onClick={() => send("answer")}
             disabled={loading}
-          >Enviar</button>
+          >
+            Enviar
+          </button>
         </div>
       </div>
 
+      {/* Botón para enviar test */}
       {isTestReadyToSend() && (
         <div className="submit-test">
           <button className="chat-button" onClick={handleSubmitTest}>
@@ -198,11 +198,13 @@ export default function ChatIA() {
         </div>
       )}
 
+      {/* Errores */}
       {error && <p className="chat-error">{error}</p>}
 
+      {/* Subida de documentos */}
       {showUpload && (
         <div className="upload-section">
-          <form onSubmit={handleUpload} className="space-y-2">
+          <form onSubmit={handleUpload}>
             <input
               type="file"
               onChange={e => setFile(e.target.files[0])}

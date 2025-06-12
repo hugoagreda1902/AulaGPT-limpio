@@ -1,28 +1,35 @@
-/* Contenedor principal del chat */
+/* -------------------- CONTENEDOR PRINCIPAL -------------------- */
 .chat-container {
   background-color: white;
   width: 100%;
   max-width: 768px;
   height: 85vh;
+  margin: 2rem auto;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  font-family: system-ui, sans-serif;
 }
 
-/* Encabezado superior del chat */
+/* -------------------- ENCABEZADO -------------------- */
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
   background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* Selector de asignaturas */
+.chat-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+}
+
 .subject-selector {
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -37,18 +44,17 @@
   border-color: #3b82f6;
 }
 
-/* Zona del cuerpo del chat */
+/* -------------------- MENSAJES / HISTORIAL -------------------- */
 .chat-body {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
+  background-color: #f9fafb;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: #f9fafb;
 }
 
-/* Burbujas de mensajes */
 .chat-bubble {
   max-width: 75%;
   padding: 0.5rem 0.75rem;
@@ -60,26 +66,33 @@
 }
 
 .user-msg {
-  background-color: #dbeafe;
   align-self: flex-end;
+  background-color: #dbeafe;
 }
 
 .assistant-msg {
-  background-color: #f3f4f6;
   align-self: flex-start;
+  background-color: #f3f4f6;
 }
 
-/* Pie de entrada del chat */
+.timestamp {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.25rem;
+}
+
+/* -------------------- FOOTER (ENTRADA DE TEXTO + BOTONES) -------------------- */
 .chat-footer {
-  display: flex;
-  gap: 8px;
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
   background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .chat-input {
-  flex: 1;
+  width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 8px 12px;
@@ -91,6 +104,12 @@
 .chat-input:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+.chat-footer-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .chat-button {
@@ -113,28 +132,28 @@
   cursor: not-allowed;
 }
 
-/* Animación para los mensajes */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* -------------------- TEST INTERACTIVO -------------------- */
+.test-question {
+  background-color: #ffffff;
+  padding: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
 }
 
-/* NUEVOS ESTILOS AÑADIDOS */
+.test-options {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-/* Mensaje de carga */
+/* -------------------- MENSAJES DE CARGA, ERROR Y ÉXITO -------------------- */
 .loading-msg {
   font-size: 0.875rem;
   color: #6b7280;
   text-align: center;
 }
 
-/* Mensajes de error y éxito */
 .chat-error {
   color: #dc2626;
   font-size: 0.875rem;
@@ -153,23 +172,41 @@
   margin: 0.5rem 1rem;
 }
 
-/* Área de subida de archivos */
+/* -------------------- SECCIÓN SUBIR DOCUMENTO -------------------- */
 .upload-section {
   padding: 1rem;
   border-top: 1px solid #e5e7eb;
   background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-/* Responsive */
+/* -------------------- ENVÍO DE TEST -------------------- */
+.submit-test {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  text-align: right;
+}
+
+/* -------------------- ANIMACIÓN -------------------- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -------------------- RESPONSIVE -------------------- */
 @media (max-width: 600px) {
   .chat-container {
     height: 90vh;
     border-radius: 0;
-  }
-
-  .chat-input,
-  .chat-button {
-    font-size: 0.75rem;
   }
 
   .chat-header {
@@ -177,17 +214,14 @@
     align-items: flex-start;
     gap: 0.5rem;
   }
-}
 
-.chat-footer-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 0.5rem;
-}
+  .chat-footer-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
 
-
-.timestamp {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-bottom: 0.25rem;
+  .chat-input,
+  .chat-button {
+    font-size: 0.75rem;
+  }
 }
