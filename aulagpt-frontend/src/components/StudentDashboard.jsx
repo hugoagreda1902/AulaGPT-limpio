@@ -1,8 +1,14 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 
 const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
+  const navigate = useNavigate(); // ← necesario para redirigir
+
+  const goToChat = () => {
+    navigate("/chat");
+  };
 
   return (
     <div className="home-page">
@@ -35,7 +41,7 @@ const StudentDashboard = () => {
             <p>Próximamente: documentos conectados</p>
 
             <h3>Acceso al Chat</h3>
-            <button onClick={() => alert("Chat próximamente")}>
+            <button onClick={goToChat}>
               Entrar al Chat
             </button>
           </div>
