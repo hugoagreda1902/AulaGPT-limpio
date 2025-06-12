@@ -1,23 +1,45 @@
-# models.py (versión corregida y depurada)
+import string
+import random
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
+def generate_invite_code():
+    """Genera un código único de 6 dígitos."""
+    return ''.join(random.choices(string.digits, k=6))
+
 # --- Manager personalizado ---
 class UserManager(BaseUserManager):
-    def create_user(self, email, name, surname, role, password=None):
+    def _generate_unique_code(self):
+        code = generate_invite_code()
+        while User.objects.filter(invite_code=code).exists():
+            code = generate_invite_code()
+        return code
+
+    def create_user(self, username, email, name, surname, role, password=None):
+        if not username:
+            raise ValueError('Users must have a username')
         if not email:
             raise ValueError('Users must have an email address')
         email = self.normalize_email(email)
+        username = username.lower()
         if role not in ['student', 'teacher']:
             raise ValueError('Role must be student or teacher')
-        user = self.model(email=email, name=name, surname=surname, role=role)
+        invite_code = self._generate_unique_code()
+        user = self.model(
+            username=username,
+            email=email,
+            name=name,
+            surname=surname,
+            role=role,
+            invite_code=invite_code
+        )
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, name, surname, role='teacher', password=None):
-        user = self.create_user(email, name, surname, role, password)
+    def create_superuser(self, username, email, name, surname, role='teacher', password=None):
+        user = self.create_user(username, email, name, surname, role, password)
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
@@ -30,20 +52,65 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('teacher', 'Teacher'),
     )
     id = models.AutoField(primary_key=True)
+    username = models.CharField(max_length=15, unique=True, null=True, blank=True)
+    invite_code = models.CharField(max_length=6, null=True, editable=False, default=generate_invite_code, help_text="Código único de 6 dígitos para invitaciones")
+    email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     surname = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
     role = models.CharField(max_length=7, choices=ROLE_CHOICES)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['name', 'surname', 'role']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'name', 'surname', 'role']
 
     objects = UserManager()
 
     def __str__(self):
-        return f"{self.name} {self.surname} ({self.role})"
+        return f"{self.username} ({self.role})"
+
+
+# --- Student–Teacher assignment table ---
+class StudentTeacher(models.Model):
+    STATUS_CHOICES = (
+        ('pending',  'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    )
+
+    id = models.AutoField(primary_key=True)
+    # Relación al alumno (solo roles='student')
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        limit_choices_to={'role': 'student'},
+        on_delete=models.CASCADE,
+        related_name='student_teachers'
+    )
+    # Relación al profesor (solo roles='teacher')
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        limit_choices_to={'role': 'teacher'},
+        on_delete=models.CASCADE,
+        related_name='teacher_students'
+    )
+    # Fecha en que el profesor crea la invitación
+    date_assigned = models.DateTimeField(auto_now_add=True)
+    # Estado de la invitación: pendiente, aceptada o rechazada
+    status = models.CharField(
+        max_length=8,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text='Estado de la asignación: pending, accepted o rejected'
+    )
+    # Fecha en que el alumno responde (acepta/rechaza)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        # Evita duplicados: un mismo par alumno–profesor solo puede existir una vez
+        unique_together = ('student', 'teacher')
+
+    def __str__(self):
+        return f"{self.student.username} → {self.teacher.username} [{self.status}]"
 
 # --- Documentos ---
 class Documents(models.Model):
@@ -128,7 +195,7 @@ class TestAnswer(models.Model):
     answer_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Answer by {self.user.email} at {self.answer_date}" 
+        return f"Answer by {self.user.username} at {self.answer_date}"
 
 # --- Actividades para estadísticas ---
 class Activity(models.Model):
@@ -148,7 +215,7 @@ class Activity(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.activity_type} by {self.user.email} at {self.timestamp}"  
+        return f"{self.activity_type} by {self.user.username} at {self.timestamp}"
 
 # --- Historial de chat con IA ---
 class ChatHistory(models.Model):
@@ -164,4 +231,49 @@ class ChatHistory(models.Model):
     subject = models.CharField(max_length=100, default='Sin asignar')
 
     def __str__(self):
-       return f"{self.user.email} → [{self.timestamp:%Y-%m-%d %H:%M}]" 
+        return f"{self.user.username} → [{self.timestamp:%Y-%m-%d %H:%M}]"
+
+# --- Progress Tracking por estudiante y asignatura ---
+class Progress(models.Model):
+    id = models.AutoField(primary_key=True)
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        limit_choices_to={'role': 'student'},
+        on_delete=models.CASCADE,
+        related_name='progress_records'
+    )
+    subject = models.CharField(
+        max_length=100,
+        help_text="Código o nombre de la asignatura"
+    )
+    completed_tests = models.IntegerField(
+        default=0,
+        help_text="Número de tests que el estudiante ha finalizado"
+    )
+    correct_answers = models.IntegerField(
+        default=0,
+        help_text="Total de respuestas correctas hasta ahora"
+    )
+    total_questions = models.IntegerField(
+        default=0,
+        help_text="Total de preguntas contestadas hasta ahora"
+    )
+    summaries_generated = models.IntegerField(
+        default=0,
+        help_text="Total de resúmenes generados por el estudiante en esta asignatura"
+    )
+    last_updated = models.DateTimeField(
+        auto_now=True,
+        help_text="Fecha de la última actualización de este registro"
+    )
+
+    class Meta:
+        unique_together = ('student', 'subject')
+        verbose_name = 'Progress'
+        verbose_name_plural = 'Progress Records'
+
+    def __str__(self):
+        pct = (self.correct_answers / self.total_questions * 100) if self.total_questions else 0
+        return f"{self.student.username} – {self.subject}: {pct:.1f}% complete, {self.summaries_generated} summaries"
+
+

@@ -16,14 +16,17 @@ import json
 import re
 
 from .models import (
-    User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
+    User, Documents, Tests, TestQuestion, TestAnswer,
+    Activity, ChatHistory, StudentTeacher, Progress
 )
 from .serializers import (
     RegisterSerializer, UserSerializer, DocumentsSerializer,
     TestsSerializer, TestQuestionSerializer, TestAnswerSerializer,
-    ActivitySerializer, CustomTokenObtainPairSerializer
+    ActivitySerializer, ChatHistorySerializer,
+    CustomTokenObtainPairSerializer, StudentTeacherSerializer, 
+    ProgressSerializer
 )
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .google_drive.utils import (
     obtener_carpeta_asignatura,
     obtener_o_crear_subcarpeta_usuario,
@@ -53,13 +56,13 @@ class MiVistaProtegida(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({"mensaje": f"Hola, {request.user.email}"})
+        return Response({"mensaje": f"Hola, {request.user.username}"})
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [AllowAny]
 
     def get_serializer_class(self):
         if self.action == 'register':
@@ -74,6 +77,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({
                 "message": "Registro exitoso",
                 "id": user.id,
+                "username": user.username,
                 "email": user.email,
                 "role": user.role
             }, status=status.HTTP_201_CREATED)
@@ -81,10 +85,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='login')
     def login(self, request):
-        email = request.data.get('email')
+        username = request.data.get('username')
         password = request.data.get('password')
+        if not username or not password:
+            return Response({"error": "Debe incluir 'username' y 'password'"}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(username__iexact=username)
         except User.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         if user.check_password(password):
@@ -121,35 +127,23 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class TestQuestionViewSet(viewsets.ModelViewSet):
-    queryset = TestQuestion.objects.all()
-    serializer_class = TestQuestionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-
-class TestAnswerViewSet(viewsets.ModelViewSet):
-    queryset = TestAnswer.objects.all()
-    serializer_class = TestAnswerSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'], url_path='submit')
     def submit_answers(self, request):
         subject = request.data.get('subject')
         answers = request.data.get('answers')
         if not subject or not answers:
-            return Response({"error": "Faltan datos"}, status=400)
+            return Response({"error": "Faltan datos"}, status=status.HTTP_400_BAD_REQUEST)
         test = Tests.objects.filter(
             creator=request.user,
             test_name__icontains=subject
         ).order_by('-creation_date').first()
         if not test:
-            return Response({"error": "No se encontró un test para esa asignatura."}, status=404)
+            return Response({"error": "No se encontró un test para esa asignatura."}, status=status.HTTP_404_NOT_FOUND)
         for ans in answers:
             qtext = ans.get('question')
             selected = ans.get('selected')
@@ -168,10 +162,48 @@ class TestsViewSet(viewsets.ModelViewSet):
         return Response({"message": "Respuestas guardadas correctamente."})
 
 
+class TestQuestionViewSet(viewsets.ModelViewSet):
+    queryset = TestQuestion.objects.all()
+    serializer_class = TestQuestionSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TestAnswerViewSet(viewsets.ModelViewSet):
+    queryset = TestAnswer.objects.all()
+    serializer_class = TestAnswerSerializer
+    permission_classes = [IsAuthenticated]
+
+
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
+
+
+class StudentTeacherViewSet(viewsets.ModelViewSet):
+    queryset = StudentTeacher.objects.all()
+    serializer_class = StudentTeacherSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # El teacher es siempre el usuario autenticado
+        serializer.save(teacher=self.request.user)
+
+    @action(detail=True, methods=['post'], url_path='respond')
+    def respond(self, request, pk=None):
+        """El alumno acepta/rechaza la invitación"""
+        obj = self.get_object()
+        if request.user != obj.student:
+            return Response({'error':'No autorizado'}, status=403)
+
+        decision = request.data.get('status')
+        if decision not in ['accepted','rejected']:
+            return Response({'error':'Status inválido'}, status=400)
+
+        obj.status = decision
+        obj.responded_at = timezone.now()
+        obj.save()
+        return Response({'status': obj.status})
 
 
 class AskAPIView(APIView):
@@ -182,14 +214,12 @@ class AskAPIView(APIView):
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
         if not question or not subject:
-            return Response({"error": "Faltan campos requeridos"}, status=400)
+            return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Extraemos el texto de los documentos del usuario
         context = extraer_texto_de_documentos_usuario(subject, request.user.id)
         if not context.strip():
-            return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
+            return Response({"error": "No se pudo extraer texto de los documentos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Construcción del prompt según la acción solicitada
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
@@ -203,7 +233,6 @@ class AskAPIView(APIView):
                 "Devuélveme un resumen en máximo 5 viñetas."
             )
         else:
-            # Modo 'answer' ajustado: usa el contexto solo si es relevante
             prompt = (
                 f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
                 f"Tienes este contenido disponible:\n\n{context[:8000]}\n\n"
@@ -212,7 +241,6 @@ class AskAPIView(APIView):
                 "Responde de forma clara y concisa."
             )
 
-        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
@@ -224,19 +252,17 @@ class AskAPIView(APIView):
             )
             raw = resp.choices[0].message.content.strip()
         except Exception as e:
-            return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
+            return Response({"error": f"Fallo en OpenAI: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Procesamiento del test interactivo
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
-                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 items = json.loads(match.group(0))
             except Exception as e:
-                return Response({"error": f"Error parseando JSON: {e}"}, status=500)
+                return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Guardamos el test en base de datos
             test = Tests.objects.create(
                 creator=request.user,
                 document=None,
@@ -246,28 +272,25 @@ class AskAPIView(APIView):
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [None, None, None, None])[0],
-                    option_b=it.get('options', [None, None, None, None])[1],
-                    option_c=it.get('options', [None, None, None, None])[2],
-                    option_d=it.get('options', [None, None, None, None])[3],
+                    option_a=it.get('options', [None])[0],
+                    option_b=it.get('options', [None])[1],
+                    option_c=it.get('options', [None])[2],
+                    option_d=it.get('options', [None])[3],
                     correct_option=it.get('correct')
                 )
 
-            # Registramos en el historial de chat
             ChatHistory.objects.create(
                 user=request.user,
                 subject=subject,
                 question=question,
                 response=raw
             )
-
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
 
-        # Para 'summary' o 'answer'
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
@@ -278,3 +301,15 @@ class AskAPIView(APIView):
             "question": question,
             "answer": raw
         })
+
+class ProgressViewSet(viewsets.ModelViewSet):
+    queryset = Progress.objects.all()
+    serializer_class = ProgressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Cada alumno solo ve su propio progreso
+        if self.request.user.role == 'student':
+            return Progress.objects.filter(student=self.request.user)
+        # Los profesores (o admins) pueden ver todos
+        return super().get_queryset()

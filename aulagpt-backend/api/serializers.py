@@ -1,77 +1,70 @@
+# serializers.py
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
-import logging
-from rest_framework import status
-from rest_framework.response import Response
+from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory, StudentTeacher, Progress
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = 'email'  # Le decimos a JWT que el identificador es 'email'
+    # Usamos 'username' como identificador
+    username_field = 'username'
 
     def validate(self, attrs):
-        email = attrs.get("email")
-        password = attrs.get("password")
+        username = attrs.get('username')
+        password = attrs.get('password')
 
-        if email and password:
-            user = authenticate(request=self.context.get("request"), email=email, password=password)
-            if not user:
-                raise serializers.ValidationError("Email o contraseña incorrectos")
-        else:
-            raise serializers.ValidationError("Debe incluir 'email' y 'password'")
+        if not username or not password:
+            raise serializers.ValidationError("Debe incluir 'username' y 'password'")
+
+        user = authenticate(
+            request=self.context.get('request'),
+            username=username,
+            password=password
+        )
+        if not user:
+            raise serializers.ValidationError("Usuario o contraseña incorrectos")
 
         data = super().validate(attrs)
-
-        # Información adicional opcional
-        data['id'] = user.id
-        data['name'] = user.name
-        data['surname'] = user.surname
-        data['role'] = user.role
-
+        # Añadimos datos extra al payload
+        data.update({
+            'id': user.id,
+            'username': user.username,
+            'invite_code': user.invite_code,
+            'name': user.name,
+            'surname': user.surname,
+            'role': user.role,
+        })
         return data
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'name', 'surname', 'email', 'password', 'role')
+        fields = ('id','username','invite_code', 'email','name','surname','password','role')
+        read_only_fields = ('id', 'invite_code')  # marca invite_code como solo lectura
         extra_kwargs = {
             'password': {'write_only': True}
         }
 
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            name=validated_data['name'],
-            surname=validated_data['surname'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            role=validated_data['role']
-        )
-        return user
-
-class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, min_length=6)
-
-    class Meta:
-        model = User
-        fields = ['id', 'name', 'surname', 'email', 'password', 'role']
-        extra_kwargs = {
-            'email': {'required': True},
-            'name': {'required': True},
-            'surname': {'required': True},
-            'role': {'required': True},
-        }
-
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Este email ya está registrado.")
+    def validate_username(self, value):
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError("Este username ya está en uso.")
         return value
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        # validated_data no contendrá 'invite_code' (al ser read-only)
+        return User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            name=validated_data['name'],
+            surname=validated_data['surname'],
+            role=validated_data['role'],
+            password=validated_data['password']
+        )
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'name', 'surname', 'role')
+        read_only_fields = ('id', 'invite_code')
 
 class DocumentsSerializer(serializers.ModelSerializer):
     owner = serializers.IntegerField(source='owner.id', read_only=True)
@@ -113,3 +106,15 @@ class ChatHistorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['history_id', 'timestamp']
 
+class StudentTeacherSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentTeacher
+        fields = ('id','student','teacher','date_assigned','status','responded_at')
+        read_only_fields = ('date_assigned','responded_at','teacher')
+
+
+class ProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Progress
+        fields = ('id','student','subject','completed_tests','correct_answers','total_questions','summaries_generated','last_updated',)
+        read_only_fields = ('id','last_updated',)
