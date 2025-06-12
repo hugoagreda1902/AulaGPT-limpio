@@ -104,16 +104,26 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
+    def get_queryset(self):
+        # Este método asegura que el usuario solo vea sus propios documentos
+        return Documents.objects.filter(owner=self.request.user).order_by("-upload_date")
+
     def create(self, request, *args, **kwargs):
         usuario = request.user
         archivo = request.FILES.get('file')
         asignatura = request.data.get('subject')
+
         if not archivo or not asignatura:
-            return Response({'error': 'El archivo y la asignatura son obligatorios.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'error': 'El archivo y la asignatura son obligatorios.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             carpeta_id = obtener_carpeta_asignatura(asignatura)
             subcarpeta = obtener_o_crear_subcarpeta_usuario(carpeta_id, usuario.id)
             enlace = subir_archivo_drive(archivo, subcarpeta)
+
             doc = Documents.objects.create(
                 owner=usuario,
                 subject=asignatura,
@@ -121,11 +131,12 @@ class DocumentsViewSet(viewsets.ModelViewSet):
                 file_type=archivo.content_type,
                 drive_link=enlace
             )
+
             serializer = self.get_serializer(doc)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
