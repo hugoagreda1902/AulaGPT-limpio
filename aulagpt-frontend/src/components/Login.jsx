@@ -1,131 +1,69 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/AuthModal.css";
 
-function Register() {
-  const [formData, setFormData] = useState({
-    username: "",
-    name: "",
-    surname: "",
-    email: "",
-    password: "",
-    role: "student",
-  });
-
+function Login() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  const allowedDomains = [
-    "gmail.com", "hotmail.com", "yahoo.com", "outlook.com",
-    "icloud.com", "protonmail.com", "live.com", "gmx.com",
-    "mail.com", "msn.com", "aol.com", "zoho.com", "yandex.com", "student.com"
-  ];
-
-  const validatePassword = (password) => {
-    return {
-      length: password.length >= 6,
-      upper: /[A-Z]/.test(password),
-      lower: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[\W_]/.test(password)
-    };
-  };
-
-  const passwordChecks = validatePassword(formData.password);
-  const isPasswordValid = Object.values(passwordChecks).every(Boolean);
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    setError("");
-  };
+  const [errorMsg, setErrorMsg] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess(false);
-
-    const emailDomain = formData.email.split("@")[1];
-    if (!allowedDomains.includes(emailDomain)) {
-      setError("Por favor, usa un correo electrónico válido como Gmail, Hotmail, Outlook, etc.");
-      return;
-    }
-
-    if (!isPasswordValid) {
-      setError("La contraseña no cumple con los requisitos.");
-      return;
-    }
+    setErrorMsg("");
 
     try {
-      const res = await fetch("https://aulagpt.onrender.com/api/users/register/", {
+      const response = await fetch("https://aulagpt.onrender.com/api/token/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
       });
 
-      if (res.ok) {
-        setSuccess(true);
-        setFormData({
-          username: "",
-          name: "",
-          surname: "",
-          email: "",
-          password: "",
-          role: "student",
-        });
-      } else {
-        const data = await res.json();
-        if (typeof data === "object") {
-          const allErrors = Object.values(data).flat().join(" ");
-          setError(allErrors || "Error en el registro");
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem("accessToken", data.access);
+        localStorage.setItem("refreshToken", data.refresh);
+
+        localStorage.setItem("user", JSON.stringify({
+          id: data.id,
+          name: data.name,
+          surname: data.surname,
+          role: data.role
+        }));
+
+        if (data.role === "teacher") {
+          navigate("/dashboard/teacher");
+        } else if (data.role === "student") {
+          navigate("/dashboard/student");
         } else {
-          setError("Error en el registro.");
+          navigate("/");
         }
+
+        console.log("Login exitoso");
+      } else {
+        setErrorMsg(data.detail || "Error al iniciar sesión");
       }
-    } catch (error) {
-      console.error("Error en fetch:", error);
-      setError("Error de conexión al servidor");
+    } catch (err) {
+      console.error("Error en login:", err);
+      setErrorMsg("Error de conexión con el servidor");
     }
   };
 
   return (
     <>
-      <h2>Registro de usuario</h2>
-      {success && <p className="success-msg">¡Usuario registrado con éxito!</p>}
-      {error && <p className="error-msg">{error}</p>}
+      <h2>Iniciar sesión</h2>
+      {errorMsg && <p className="error-msg">{errorMsg}</p>}
       <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="username"
           placeholder="Nombre de usuario"
-          value={formData.username}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="text"
-          name="name"
-          placeholder="Nombre"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="text"
-          name="surname"
-          placeholder="Apellido"
-          value={formData.surname}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Correo electrónico"
-          value={formData.email}
-          onChange={handleChange}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
 
@@ -134,8 +72,8 @@ function Register() {
             type={showPassword ? "text" : "password"}
             name="password"
             placeholder="Contraseña"
-            value={formData.password}
-            onChange={handleChange}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
             className="password-input"
           />
@@ -148,35 +86,10 @@ function Register() {
           </button>
         </div>
 
-        <ul className="password-checklist">
-          <li className={passwordChecks.length ? "valid" : "invalid"}>
-            {passwordChecks.length ? "✅" : "❌"} Mínimo 6 caracteres
-          </li>
-          <li className={passwordChecks.upper ? "valid" : "invalid"}>
-            {passwordChecks.upper ? "✅" : "❌"} Una letra mayúscula
-          </li>
-          <li className={passwordChecks.lower ? "valid" : "invalid"}>
-            {passwordChecks.lower ? "✅" : "❌"} Una letra minúscula
-          </li>
-          <li className={passwordChecks.number ? "valid" : "invalid"}>
-            {passwordChecks.number ? "✅" : "❌"} Un número
-          </li>
-          <li className={passwordChecks.special ? "valid" : "invalid"}>
-            {passwordChecks.special ? "✅" : "❌"} Un carácter especial
-          </li>
-        </ul>
-
-        <select name="role" value={formData.role} onChange={handleChange} required>
-          <option value="student">Alumno</option>
-          <option value="teacher">Profesor</option>
-        </select>
-
-        <button type="submit" disabled={!isPasswordValid}>
-          Registrarse
-        </button>
+        <button type="submit">Entrar</button>
       </form>
     </>
   );
 }
 
-export default Register;
+export default Login;

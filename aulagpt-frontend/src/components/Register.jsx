@@ -11,14 +11,35 @@ function Register() {
     role: "student",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  const allowedDomains = [
+    "gmail.com", "hotmail.com", "yahoo.com", "outlook.com",
+    "icloud.com", "protonmail.com", "live.com", "gmx.com",
+    "mail.com", "msn.com", "aol.com", "zoho.com", "yandex.com", "student.com"
+  ];
+
+  const validatePassword = (password) => {
+    return {
+      length: password.length >= 6,
+      upper: /[A-Z]/.test(password),
+      lower: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[\W_]/.test(password)
+    };
+  };
+
+  const passwordChecks = validatePassword(formData.password);
+  const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -26,27 +47,14 @@ function Register() {
     setError("");
     setSuccess(false);
 
-    // ✅ Lista de dominios válidos
-    const allowedDomains = [
-      "gmail.com",
-      "hotmail.com",
-      "yahoo.com",
-      "outlook.com",
-      "icloud.com",
-      "protonmail.com",
-      "live.com",
-      "gmx.com",
-      "mail.com",
-      "msn.com",
-      "aol.com",
-      "zoho.com",
-      "yandex.com",
-      "student.com"
-    ];
-
     const emailDomain = formData.email.split("@")[1];
     if (!allowedDomains.includes(emailDomain)) {
       setError("Por favor, usa un correo electrónico válido como Gmail, Hotmail, Outlook, etc.");
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setError("La contraseña no cumple con los requisitos.");
       return;
     }
 
@@ -120,20 +128,52 @@ function Register() {
           onChange={handleChange}
           required
         />
-        <input
-          type="password"
-          name="password"
-          placeholder="Contraseña"
-          value={formData.password}
-          onChange={handleChange}
-          required
-          minLength={6}
-        />
+
+        <div className="password-wrapper">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            placeholder="Contraseña"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="password-input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="toggle-password"
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
+
+        <ul className="password-checklist">
+          <li className={passwordChecks.length ? "valid" : "invalid"}>
+            {passwordChecks.length ? "✅" : "❌"} Mínimo 6 caracteres
+          </li>
+          <li className={passwordChecks.upper ? "valid" : "invalid"}>
+            {passwordChecks.upper ? "✅" : "❌"} Una letra mayúscula
+          </li>
+          <li className={passwordChecks.lower ? "valid" : "invalid"}>
+            {passwordChecks.lower ? "✅" : "❌"} Una letra minúscula
+          </li>
+          <li className={passwordChecks.number ? "valid" : "invalid"}>
+            {passwordChecks.number ? "✅" : "❌"} Un número
+          </li>
+          <li className={passwordChecks.special ? "valid" : "invalid"}>
+            {passwordChecks.special ? "✅" : "❌"} Un carácter especial
+          </li>
+        </ul>
+
         <select name="role" value={formData.role} onChange={handleChange} required>
           <option value="student">Alumno</option>
           <option value="teacher">Profesor</option>
         </select>
-        <button type="submit">Registrarse</button>
+
+        <button type="submit" disabled={!isPasswordValid}>
+          Registrarse
+        </button>
       </form>
     </>
   );
