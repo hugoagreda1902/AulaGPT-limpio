@@ -152,6 +152,11 @@ class TestQuestionViewSet(viewsets.ModelViewSet):
     serializer_class = TestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+class TestAnswerViewSet(viewsets.ModelViewSet):
+    queryset = TestAnswer.objects.all()
+    serializer_class = TestAnswerSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer
