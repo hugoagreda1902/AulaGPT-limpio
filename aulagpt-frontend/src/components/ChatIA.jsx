@@ -41,11 +41,12 @@ export default function ChatIA() {
     setInput("");
 
     try {
-      const { answer } = await askQuestion(question, subject, action);
+      const actualAction = question.toLowerCase().includes("test") ? "test" : action;
+      const { answer } = await askQuestion(question, subject, actualAction);
       const botMsg = { timestamp: new Date(), autor: "ia", texto: answer };
       setHistory(h => [...h, botMsg]);
 
-      if (action === "test") {
+      if (actualAction === "test") {
         try {
           const parsedJSON = JSON.parse(answer);
           const isValid = Array.isArray(parsedJSON) && parsedJSON.every(q => q.question && q.options && q.correct);
