@@ -24,24 +24,28 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("token", data.access);
+        // Guardamos los tokens
+        localStorage.setItem("accessToken", data.access);
+        localStorage.setItem("refreshToken", data.refresh);
 
-        if (data.role) {
-          localStorage.setItem("role", data.role);
+        // Guardamos datos del usuario
+        localStorage.setItem("user", JSON.stringify({
+          id: data.id,
+          name: data.name,
+          surname: data.surname,
+          role: data.role
+        }));
 
-          if (data.role === "teacher") {
-            navigate("/dashboard/teacher");
-          } else if (data.role === "student") {
-            navigate("/dashboard/student");
-          } else {
-            navigate("/"); // Fallback por si el rol no es válido
-          }
+        // Redirigir según rol
+        if (data.role === "teacher") {
+          navigate("/dashboard/teacher");
+        } else if (data.role === "student") {
+          navigate("/dashboard/student");
         } else {
-          // Si no se devuelve el rol, redirige al home por defecto
           navigate("/");
         }
 
-        console.log("Token de acceso:", data.access);
+        console.log("Login exitoso. Token:", data.access);
       } else {
         setErrorMsg(data.detail || "Error al iniciar sesión");
       }

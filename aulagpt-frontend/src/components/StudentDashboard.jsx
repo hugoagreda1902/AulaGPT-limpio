@@ -1,17 +1,8 @@
-import React, { useState } from "react";
-import "../styles/dashboard.css";
+import React from "react";
+import "../styles/Dashboard.css";
 
-const StudentDashboard = ({ username = "Usuario1", onEnterChat }) => {
-  const [showMenu, setShowMenu] = useState(false);
-
-  const toggleMenu = () => {
-    setShowMenu(!showMenu);
-  };
-
-  const logout = () => {
-    // Aquí puedes añadir tu lógica de logout
-    alert("Sesión cerrada");
-  };
+const StudentDashboard = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div className="home-page">
@@ -20,32 +11,33 @@ const StudentDashboard = ({ username = "Usuario1", onEnterChat }) => {
           <h1 className="logo">AulaGPT</h1>
         </div>
         <div className="header-right">
-          <div className="access-dot green-dot" title="Opciones" onClick={toggleMenu}></div>
-          {showMenu && (
-            <div className="dropdown-menu">
-              <button onClick={logout}>Cerrar sesión</button>
-            </div>
-          )}
+          <div className="access-dot green-dot" title="Cerrar sesión"></div>
         </div>
       </header>
 
       <main className="main-content">
         <h2>Dashboard del Estudiante</h2>
         <p className="subtext">
-          Bienvenido, <strong>{username}</strong>. Aquí puedes acceder a tus documentos, chatear y gestionar tu progreso académico.
+          {user ? (
+            <>Bienvenido, <strong>{user.name} {user.surname}</strong>. Este es tu dashboard personalizado.</>
+          ) : (
+            "Cargando..."
+          )}
         </p>
 
         <section className="grid">
           <div className="column">
             <h3>Datos del Estudiante</h3>
-            <p><strong>Nombre:</strong> {username}</p>
-            <p><strong>ID:</strong> 123456</p>
+            <p><strong>Nombre:</strong> {user ? `${user.name} ${user.surname}` : "..."}</p>
+            <p><strong>ID:</strong> {user ? user.id : "..."}</p>
 
             <h3>Documentos</h3>
-            <p>Tienes 3 documentos subidos</p>
+            <p>Próximamente: documentos conectados</p>
 
             <h3>Acceso al Chat</h3>
-            <button onClick={onEnterChat}>Entrar al Chat</button>
+            <button onClick={() => alert("Chat próximamente")}>
+              Entrar al Chat
+            </button>
           </div>
 
           <div className="column">
