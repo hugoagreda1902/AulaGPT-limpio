@@ -41,8 +41,6 @@ function Login() {
           // Si no se devuelve el rol, puedes redirigir por defecto
           navigate("./TeacherDashboard");
         }
-
-        alert("Login correcto");
         console.log("Token de acceso:", data.access);
       } else {
         setErrorMsg(data.detail || "Error al iniciar sesión");
