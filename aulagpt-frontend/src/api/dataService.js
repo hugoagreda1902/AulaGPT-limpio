@@ -32,7 +32,7 @@ export const uploadDocument = (file, subject) => {
 
 // Envío de respuestas de test para métricas
 export const submitTest = (subject, answers) =>
-  API.post('/testanswers/submit/', { subject, answers })
+  API.post('/tests/submit/', { subject, answers })
     .then(res => res.data)
     .catch(err => {
       if (err.response && err.response.data) {
