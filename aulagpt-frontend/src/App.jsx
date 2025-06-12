@@ -3,12 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import Home from "./components/Home";
 import ChatIA from "./components/ChatIA";
-import StudentDashboard from "./components/StudentDashboard"; // ← en la misma carpeta
-import TeacherDashboard from "./components/TeacherDashboard"; // ← igual
+import StudentDashboard from "./components/StudentDashboard";
+import TeacherDashboard from "./components/TeacherDashboard";
+import StudentDocuments from "./components/StudentDocuments"; // ¡Aquí estás bien!
 
-// Ruta protegida
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
   return token ? children : <Navigate to="/" />;
 }
 
@@ -42,6 +42,15 @@ function App() {
             element={
               <PrivateRoute>
                 <TeacherDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/documents"
+            element={
+              <PrivateRoute>
+                <StudentDocuments />
               </PrivateRoute>
             }
           />

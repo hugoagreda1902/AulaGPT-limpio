@@ -4,11 +4,14 @@ import "../styles/Dashboard.css";
 
 const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
-  const navigate = useNavigate(); // ← necesario para redirigir
+  const navigate = useNavigate();
 
-  const goToChat = () => {
-    navigate("/chat");
-  };
+  const fullName = user?.name === user?.surname
+    ? user?.name
+    : `${user?.name} ${user?.surname}`;
+
+  const goToChat = () => navigate("/chat");
+  const goToDocuments = () => navigate("/documents"); // NUEVO
 
   return (
     <div className="home-page">
@@ -25,7 +28,7 @@ const StudentDashboard = () => {
         <h2>Dashboard del Estudiante</h2>
         <p className="subtext">
           {user ? (
-            <>Bienvenido, <strong>{user.name} {user.surname}</strong>. Este es tu dashboard personalizado.</>
+            <>Bienvenido, <strong>{fullName}</strong>. Este es tu dashboard personalizado.</>
           ) : (
             "Cargando..."
           )}
@@ -34,16 +37,15 @@ const StudentDashboard = () => {
         <section className="grid">
           <div className="column">
             <h3>Datos del Estudiante</h3>
-            <p><strong>Nombre:</strong> {user ? `${user.name} ${user.surname}` : "..."}</p>
+            <p><strong>Nombre:</strong> {fullName}</p>
             <p><strong>ID:</strong> {user ? user.id : "..."}</p>
 
             <h3>Documentos</h3>
             <p>Próximamente: documentos conectados</p>
+            <button onClick={goToDocuments}>Ver documentos</button>
 
             <h3>Acceso al Chat</h3>
-            <button onClick={goToChat}>
-              Entrar al Chat
-            </button>
+            <button onClick={goToChat}>Entrar al Chat</button>
           </div>
 
           <div className="column">

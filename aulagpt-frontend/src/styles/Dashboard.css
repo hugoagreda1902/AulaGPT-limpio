@@ -31,6 +31,10 @@
   background-color: #000;
 }
 
+.green-dot {
+  background-color: #3cba54;
+}
+
 .main-content h2 {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
