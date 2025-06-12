@@ -8,7 +8,7 @@ export const registerUser = (user) =>
 export const loginUser = (creds) =>
   API.post('/token/', creds).then(res => res.data);
 
-// Chat / Resumen
+// Chat / Resumen / Test
 export const askQuestion = (question, subject, action = 'answer') =>
   API.post('/ask/', { question, subject, action }).then(res => res.data);
 
@@ -16,11 +16,13 @@ export const askQuestion = (question, subject, action = 'answer') =>
 export const uploadDocument = (file, subject) => {
   const form = new FormData();
   form.append('file', file);
-
-  // Si el backend espera el campo "subject"
-  if (subject) form.append('subject', subject);
+  form.append('subject', subject);
 
   return API.post('/documents/', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }).then(res => res.data);
 };
+
+// Envío de respuestas de test para métricas
+export const submitTest = (subject, answers) =>
+  API.post('/tests/submit/', { subject, answers }).then(res => res.data);
