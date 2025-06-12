@@ -122,7 +122,7 @@ const StudentDocuments = () => {
       <main className="main-content">
         <h2>Documentos del Estudiante</h2>
 
-        <button type="button" onClick={() => setShowModal(true)}>Subir documento</button>
+        <button onClick={() => setShowModal(true)}>Subir documento</button>
 
         {message && <p>{message}</p>}
 
@@ -147,7 +147,7 @@ const StudentDocuments = () => {
                     </li>
                   ))}
                 </ul>
-                <button type="button" onClick={handleDeleteSelected}>Eliminar seleccionados</button>
+                <button onClick={handleDeleteSelected}>Eliminar seleccionados</button>
               </>
             ) : (
               <p>No hay documentos subidos.</p>
@@ -157,8 +157,9 @@ const StudentDocuments = () => {
       </main>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-button" onClick={() => setShowModal(false)}>×</button>
             <h3>Subir Documento</h3>
             <form onSubmit={handleUpload}>
               <input type="file" onChange={(e) => setFile(e.target.files[0])} required />

@@ -9,6 +9,10 @@ const Home = () => {
     setShowModal(true);
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+  };
+
   return (
     <div className="home-page">
       <header className="header">
@@ -16,7 +20,13 @@ const Home = () => {
           <h1 className="logo">AulaGPT</h1>
         </div>
         <div className="header-right">
-          <div className="access-dot" title="Acceder" onClick={openModal}></div>
+          <div
+            className="access-dot"
+            title="Acceder"
+            onClick={openModal}
+            role="button"
+            aria-label="Abrir autenticación"
+          ></div>
         </div>
       </header>
 
@@ -50,7 +60,6 @@ const Home = () => {
           </div>
 
           <div className="column">
-            {/* Aquí puedes insertar la imagen del ordenador */}
             <img
               src="AQUI_TU_IMAGEN_DEL_ORDENADOR"
               alt="Ilustración AulaGPT"
@@ -78,7 +87,7 @@ const Home = () => {
       </footer>
 
       {showModal && (
-        <AuthModal isLogin={true} onClose={() => setShowModal(false)} />
+        <AuthModal isLogin={true} onClose={closeModal} />
       )}
     </div>
   );
