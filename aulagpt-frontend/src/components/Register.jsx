@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./AuthModal.css"; // Asegúrate de importar los estilos
+import "../styles/AuthModal.css";
 
 function Register() {
   const [formData, setFormData] = useState({

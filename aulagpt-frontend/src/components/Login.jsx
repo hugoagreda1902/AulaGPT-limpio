@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./AuthModal.css"; // Reutilizamos el CSS del modal
+import "../styles/AuthModal.css";
 
 function Login() {
   const [email, setEmail] = useState("");
