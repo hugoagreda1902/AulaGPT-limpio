@@ -10,7 +10,14 @@ export const loginUser = (creds) =>
 
 // Chat / Resumen / Test
 export const askQuestion = (question, subject, action = 'answer') =>
-  API.post('/ask/', { question, subject, action }).then(res => res.data);
+  API.post('/ask/', { question, subject, action })
+    .then(res => res.data)
+    .catch(err => {
+      if (err.response && err.response.data) {
+        return err.response.data;
+      }
+      throw err;
+    });
 
 // Subida de documento
 export const uploadDocument = (file, subject) => {
@@ -23,6 +30,13 @@ export const uploadDocument = (file, subject) => {
   }).then(res => res.data);
 };
 
-/// Envío de respuestas de test para métricas
+// Envío de respuestas de test para métricas
 export const submitTest = (subject, answers) =>
-  API.post('/testanswers/submit/', { subject, answers }).then(res => res.data);
+  API.post('/testanswers/submit/', { subject, answers })
+    .then(res => res.data)
+    .catch(err => {
+      if (err.response && err.response.data) {
+        return err.response.data;
+      }
+      throw err;
+    });

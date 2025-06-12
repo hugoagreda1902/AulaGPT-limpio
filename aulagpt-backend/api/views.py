@@ -245,6 +245,7 @@ class AskAPIView(APIView):
             )
 
         openai.api_key = settings.OPENAI_API_KEY
+
         try:
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -254,36 +255,58 @@ class AskAPIView(APIView):
                 ]
             )
             raw = completion.choices[0].message.content.strip()
-            items = json.loads(raw)
+
+            # --- Extracción segura de JSON del texto generado ---
+            match = re.search(r'\[\s*{.*?}\s*\]', raw, re.DOTALL)
+            if not match:
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
+
+            json_text = match.group(0)
+            items = json.loads(json_text)
+
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI o JSON: {e}"}, status=500)
 
-        test = Tests.objects.create(
-            creator=request.user,
-            document=None,
-            test_name=f"Test generado para {subject}"
-        )
-
-        for it in items:
-            TestQuestion.objects.create(
-                test=test,
-                question_text=it['question'],
-                option_a=it['options'][0],
-                option_b=it['options'][1],
-                option_c=it['options'][2],
-                option_d=it['options'][3],
-                correct_option=it['correct']
+        if action == 'test':
+            test = Tests.objects.create(
+                creator=request.user,
+                document=None,
+                test_name=f"Test generado para {subject}"
             )
 
-        ChatHistory.objects.create(
-            user=request.user,
-            subject=subject,
-            question=question,
-            response="Test generado y guardado correctamente."
-        )
+            for it in items:
+                TestQuestion.objects.create(
+                    test=test,
+                    question_text=it['question'],
+                    option_a=it['options'][0],
+                    option_b=it['options'][1],
+                    option_c=it['options'][2],
+                    option_d=it['options'][3],
+                    correct_option=it['correct']
+                )
 
-        return Response({
-            "question": question,
-            "test_id": test.test_id,
-            "test": items
-        })
+            ChatHistory.objects.create(
+                user=request.user,
+                subject=subject,
+                question=question,
+                response="Test generado y guardado correctamente."
+            )
+
+            return Response({
+                "question": question,
+                "test_id": test.test_id,
+                "test": items
+            })
+
+        else:
+            # Para 'summary' o 'answer'
+            ChatHistory.objects.create(
+                user=request.user,
+                subject=subject,
+                question=question,
+                response=raw
+            )
+            return Response({
+                "question": question,
+                "answer": raw
+            })

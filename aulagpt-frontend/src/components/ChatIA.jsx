@@ -42,7 +42,19 @@ export default function ChatIA() {
 
     try {
       const actualAction = question.toLowerCase().includes("test") ? "test" : action;
-      const { answer } = await askQuestion(question, subject, actualAction);
+      const data = await askQuestion(question, subject, actualAction);
+      const serverError = data.error;
+      const answer = data.answer;
+
+      if (serverError) {
+        const msg = serverError.includes("JSON válido")
+          ? "❌ No se pudo generar el test. Asegúrate de que hay documentos subidos y reformula tu pregunta."
+          : "❌ Error al procesar tu petición. Inténtalo de nuevo.";
+        const botMsg = { timestamp: new Date(), autor: "ia", texto: msg };
+        setHistory(h => [...h, botMsg]);
+        return;
+      }
+
       const botMsg = { timestamp: new Date(), autor: "ia", texto: answer };
       setHistory(h => [...h, botMsg]);
 
