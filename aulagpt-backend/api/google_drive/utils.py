@@ -7,6 +7,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 import pdfplumber
+import re
 
 # Alcance de lectura/escritura para Drive
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -19,12 +20,8 @@ def normalizar(texto):
 
 # --- Crear cliente de Google Drive usando credenciales en variable de entorno ---
 def obtener_servicio_drive():
-    # La variable debe contener el JSON completo de la cuenta de servicio
     sa_info = json.loads(os.environ['GOOGLE_SERVICE_ACCOUNT_JSON'])
-    creds = service_account.Credentials.from_service_account_info(
-        sa_info,
-        scopes=SCOPES
-    )
+    creds = service_account.Credentials.from_service_account_info(sa_info, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
 # --- Obtener ID de carpeta de asignatura según clave en settings ---
@@ -76,7 +73,7 @@ def subir_archivo_drive(archivo, carpeta_id):
     ).execute()
     return f"https://drive.google.com/file/d/{created.get('id')}/view?usp=sharing"
 
-# --- Listar archivos en una carpeta de Drive (no eliminados) ---
+# --- Listar archivos en una carpeta de Drive ---
 def list_files_in_folder(folder_id):
     servicio = obtener_servicio_drive()
     query = f"'{folder_id}' in parents and trashed = false"
@@ -116,3 +113,25 @@ def extraer_texto_de_documentos_usuario(subject, user_id):
     except Exception as e:
         print(f"Error extrayendo texto de Drive: {e}")
         return ""
+
+# --- Extraer el file_id desde un enlace compartido ---
+def extraer_file_id_desde_link(link):
+    match = re.search(r'/d/([a-zA-Z0-9_-]+)', link)
+    if match:
+        return match.group(1)
+    match = re.search(r'id=([a-zA-Z0-9_-]+)', link)
+    if match:
+        return match.group(1)
+    return None
+
+# --- Eliminar archivo de Google Drive usando el enlace compartido ---
+def eliminar_archivo_drive(link):
+    file_id = extraer_file_id_desde_link(link)
+    if not file_id:
+        raise ValueError("No se pudo extraer el ID del archivo desde el enlace.")
+    servicio = obtener_servicio_drive()
+    try:
+        servicio.files().delete(fileId=file_id).execute()
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Error al eliminar archivo de Google Drive: {e}")

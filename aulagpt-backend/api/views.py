@@ -31,7 +31,8 @@ from .google_drive.utils import (
     obtener_carpeta_asignatura,
     obtener_o_crear_subcarpeta_usuario,
     subir_archivo_drive,
-    extraer_texto_de_documentos_usuario
+    extraer_texto_de_documentos_usuario,
+    eliminar_archivo_drive
 )
 
 
@@ -105,7 +106,7 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        # Este método asegura que el usuario solo vea sus propios documentos
+        # Mostrar solo documentos del usuario autenticado
         return Documents.objects.filter(owner=self.request.user).order_by("-upload_date")
 
     def create(self, request, *args, **kwargs):
@@ -137,6 +138,39 @@ class DocumentsViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=["post"], url_path="delete-selected")
+    def delete_selected(self, request):
+        ids = request.data.get("ids", [])
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {"error": "Debes enviar una lista de IDs en 'ids'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        documentos = Documents.objects.filter(id__in=ids, owner=request.user)
+
+        if not documentos.exists():
+            return Response(
+                {"error": "No se encontraron documentos válidos para eliminar."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        eliminados = []
+        errores = []
+
+        for doc in documentos:
+            try:
+                eliminar_archivo_drive(doc.drive_link)
+                eliminados.append(doc.id)
+                doc.delete()
+            except Exception as e:
+                errores.append({"id": doc.id, "error": str(e)})
+
+        return Response({
+            "eliminados": eliminados,
+            "errores": errores
+        }, status=status.HTTP_200_OK)
 
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
