@@ -24,16 +24,18 @@ export default function ChatIA() {
   const [uploadErr, setUploadErr] = useState("");
   const chatRef = useRef();
 
-  useEffect(() => {
-    if (!subject) return;
-    fetch(`${process.env.REACT_APP_API_BASE_URL}/chat-history/?subject=${subject}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-    })
-      .then(res => res.json())
-      .then(setHistory)
-      .catch(console.error);
-  }, [subject]);
+  // Ya no cargamos historial desde el backend
+  // useEffect(() => {
+  //   if (!subject) return;
+  //   fetch(`${process.env.REACT_APP_API_BASE_URL}/chat-history/?subject=${subject}`, {
+  //     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+  //   })
+  //     .then(res => res.json())
+  //     .then(setHistory)
+  //     .catch(console.error);
+  // }, [subject]);
 
+  // Para hacer scroll al final cuando llegue un nuevo mensaje
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -44,13 +46,18 @@ export default function ChatIA() {
     if (!input.trim() || !subject) return;
     setError("");
     setLoading(true);
+
+    // Añadimos el mensaje del usuario localmente
     const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
     setHistory(h => [...h, userMsg]);
+
     const question = input;
     setInput("");
 
     try {
+      // Llamada al endpoint /ask/ con { question, subject, action }
       const { answer } = await askQuestion(question, subject, action);
+      // Añadimos la respuesta de la IA localmente
       const botMsg = { timestamp: new Date(), autor: "ia", texto: answer };
       setHistory(h => [...h, botMsg]);
     } catch (e) {

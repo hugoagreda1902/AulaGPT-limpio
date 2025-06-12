@@ -10,7 +10,7 @@ export const loginUser = (creds) =>
 
 // Chat / Resumen
 export const askQuestion = (question, subjectId, action = 'answer') =>
-  API.post('/ask/', { question, subject_id: subjectId, action }).then(res => res.data);
+  API.post('/ask/', { question, subject: subjectId, action }).then(res => res.data);
 
 // Subida de documento
 export const uploadDocument = (file, subject) => {

@@ -1,7 +1,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity
+from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
 import logging
 from rest_framework import status
 from rest_framework.response import Response
@@ -106,3 +106,10 @@ class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
         fields = '__all__'
+
+class ChatHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatHistory
+        fields = '__all__'
+        read_only_fields = ['history_id', 'timestamp']
+
