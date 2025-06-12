@@ -9,8 +9,8 @@ export const loginUser = (creds) =>
   API.post('/token/', creds).then(res => res.data);
 
 // Chat / Resumen
-export const askQuestion = (question, subjectId, action = 'answer') =>
-  API.post('/ask/', { question, subject: subjectId, action }).then(res => res.data);
+export const askQuestion = (question, subject, action = 'answer') =>
+  API.post('/ask/', { question, subject, action }).then(res => res.data);
 
 // Subida de documento
 export const uploadDocument = (file, subject) => {
