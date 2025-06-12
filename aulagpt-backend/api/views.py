@@ -187,30 +187,37 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
 
-        # 1) Extraer texto de los PDFs del usuario en esta asignatura
-        try:
-            context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
-            if not context_text.strip():
-                return Response(
-                    {"error": "No se pudo extraer texto de los documentos"},
-                    status=400
-                )
-        except Exception as e:
-            return Response(
-                {"error": f"Error accediendo a Drive: {e}"},
-                status=500
+        # Extraemos los PDFs como antes...
+        context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
+        if not context_text.strip():
+            return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
+
+        # --- Aquí diferenciamos acciones ---
+        if action == 'test':
+            system_prompt = (
+                f"Eres **AulaGPT**, un generador de tests para la asignatura {subject}.\n"
+                f"Usa SOLO este contenido:\n\n{context_text[:8000]}\n\n"
+                "Genera 5 preguntas de opción múltiple con 4 opciones (A–D) y devuelve un JSON así:\n"
+                "[{\"question\": \"...\", \"options\": [\"A...\",\"B...\",\"C...\",\"D...\"], \"correct\": \"B\"}, …]\n"
+                "No expliques nada más, solo retorna el JSON."
             )
+        elif action == 'summary':
+            system_prompt = (
+                f"Eres **AulaGPT**, un generador de resúmenes para {subject}.\n"
+                f"Usa SOLO este contenido:\n\n{context_text[:8000]}\n\n"
+                "Devuélveme un resumen en máximo 5 viñetas."
+            )
+        else:
+            system_prompt = (
+                f"Eres **AulaGPT**, un asistente educativo para {subject}.\n"
+                f"Usa SOLO este contenido:\n\n{context_text[:8000]}\n\n"
+                "Responde a la pregunta de forma clara y concisa."
+            )
+        # -----------------------------------
 
-        # 2) Construir el prompt
-        system_prompt = (
-            f"Eres AulaGPT. Usa exclusivamente el siguiente contenido para responder:\n\n"
-            f"{context_text[:8000]}\n\n"
-            "Responde de forma clara, ordenada y precisa. Si no puedes responder, di que no sabes."
-        )
-
-        # 3) Llamada a OpenAI usando ChatCompletion.create
+        # Llamada a OpenAI (versión clásica)
+        openai.api_key = settings.OPENAI_API_KEY
         try:
-            openai.api_key = settings.OPENAI_API_KEY
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -222,12 +229,11 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
-        # 4) Guardar en historial
+        # Guardar en historial...
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
             question=question,
             response=respuesta
         )
-
         return Response({"question": question, "answer": respuesta})
