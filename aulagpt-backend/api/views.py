@@ -12,6 +12,7 @@ import traceback
 from django.conf import settings
 import openai
 import os
+import json
 
 from .models import (
     User,
@@ -142,11 +143,6 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class TestsViewSet(viewsets.ModelViewSet):
-    queryset = Tests.objects.all()
-    serializer_class = TestsSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
 class TestQuestionViewSet(viewsets.ModelViewSet):
     queryset = TestQuestion.objects.all()
     serializer_class = TestQuestionSerializer
@@ -156,7 +152,7 @@ class TestAnswerViewSet(viewsets.ModelViewSet):
     queryset = TestAnswer.objects.all()
     serializer_class = TestAnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer
@@ -170,11 +166,10 @@ class TestsViewSet(viewsets.ModelViewSet):
         if not subject or not answers:
             return Response({"error": "Faltan datos"}, status=400)
 
-        # Buscar el test más reciente del usuario para esa asignatura
         test = Tests.objects.filter(
             creator=request.user,
             test_name__icontains=subject
-        ).order_by('-created_at').first()
+        ).order_by('-creation_date').first()
 
         if not test:
             return Response({"error": "No se encontró un test para esa asignatura."}, status=404)
@@ -186,13 +181,14 @@ class TestsViewSet(viewsets.ModelViewSet):
             try:
                 question = TestQuestion.objects.get(test=test, question_text=question_text)
             except TestQuestion.DoesNotExist:
-                continue  # Salta esta si no la encuentra
+                continue
 
             TestAnswer.objects.create(
                 test=test,
                 question=question,
-                student=request.user,
-                selected_option=selected
+                user=request.user,
+                selected_option=selected,
+                is_correct=(selected == question.correct_option)
             )
 
         return Response({"message": "Respuestas guardadas correctamente."})
@@ -258,14 +254,13 @@ class AskAPIView(APIView):
                 ]
             )
             raw = completion.choices[0].message.content.strip()
-            items = json.loads(raw)  # Aquí parseamos el JSON del test
+            items = json.loads(raw)
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI o JSON: {e}"}, status=500)
 
-        # Guardamos el test en la base de datos
         test = Tests.objects.create(
             creator=request.user,
-            document=None,  # Puedes cambiarlo si asocias a un documento
+            document=None,
             test_name=f"Test generado para {subject}"
         )
 
