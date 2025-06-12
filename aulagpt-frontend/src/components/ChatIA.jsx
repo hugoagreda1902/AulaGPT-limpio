@@ -38,7 +38,6 @@ export default function ChatIA() {
     setTestQuestions([]);
     setSelectedAnswers({});
 
-    // Agrega mensaje de usuario
     const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
     setHistory(prev => [...prev, userMsg]);
     const question = input;
@@ -48,7 +47,6 @@ export default function ChatIA() {
       const actualAction = question.toLowerCase().includes("test") ? "test" : action;
       const data = await askQuestion(question, subject, actualAction);
 
-      // Manejo de errores del servidor
       if (data.error) {
         const msg = data.error.includes("JSON válido")
           ? "❌ No se pudo generar el test. Asegúrate de que hay documentos subidos y reformula tu pregunta."
@@ -57,14 +55,12 @@ export default function ChatIA() {
         return;
       }
 
-      // Flujo de test interactivo
       if (actualAction === "test" && Array.isArray(data.test)) {
         setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Aquí tienes tu test interactivo:" }]);
         setTestQuestions(data.test);
         return;
       }
 
-      // Flujo normal de respuesta o resumen
       const botMsg = { timestamp: new Date(), autor: "ia", texto: data.answer };
       setHistory(prev => [...prev, botMsg]);
 
@@ -122,12 +118,15 @@ export default function ChatIA() {
       </div>
 
       <div className="chat-body" ref={chatRef}>
-        {history.map((msg, i) => (
-          <div key={i} className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}>
-            <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
-            <p>{msg.texto}</p>
-          </div>
-        ))}
+        {history.map((msg, i) => {
+          const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
+          return (
+            <div key={i} className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}>
+              <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+              {!isTestIntro && <p>{msg.texto}</p>}
+            </div>
+          );
+        })}
 
         {testQuestions.map((q, i) => (
           <div key={i} className="test-question">
