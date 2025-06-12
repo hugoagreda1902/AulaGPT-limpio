@@ -183,10 +183,13 @@ class AskAPIView(APIView):
         action = request.data.get('action', 'answer')
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
+
+        # Extraemos el texto de los documentos del usuario
         context = extraer_texto_de_documentos_usuario(subject, request.user.id)
         if not context.strip():
             return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
-        # Prompt según acción
+
+        # Construcción del prompt según la acción solicitada
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
@@ -200,20 +203,30 @@ class AskAPIView(APIView):
                 "Devuélveme un resumen en máximo 5 viñetas."
             )
         else:
+            # Modo 'answer' ajustado: usa el contexto solo si es relevante
             prompt = (
                 f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                f"Tienes este contenido disponible:\n\n{context[:8000]}\n\n"
+                "Usa ese contenido solo si es relevante para responder la pregunta. "
+                "Si la pregunta no está relacionada con el material, responde de forma natural.\n\n"
                 "Responde de forma clara y concisa."
             )
+
+        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role":"system","content":prompt}, {"role":"user","content":question}]
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user",   "content": question}
+                ]
             )
             raw = resp.choices[0].message.content.strip()
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
+
+        # Procesamiento del test interactivo
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
@@ -222,6 +235,8 @@ class AskAPIView(APIView):
                 items = json.loads(match.group(0))
             except Exception as e:
                 return Response({"error": f"Error parseando JSON: {e}"}, status=500)
+
+            # Guardamos el test en base de datos
             test = Tests.objects.create(
                 creator=request.user,
                 document=None,
@@ -231,28 +246,35 @@ class AskAPIView(APIView):
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [])[0],
-                    option_b=it.get('options', [])[1],
-                    option_c=it.get('options', [])[2],
-                    option_d=it.get('options', [])[3],
+                    option_a=it.get('options', [None, None, None, None])[0],
+                    option_b=it.get('options', [None, None, None, None])[1],
+                    option_c=it.get('options', [None, None, None, None])[2],
+                    option_d=it.get('options', [None, None, None, None])[3],
                     correct_option=it.get('correct')
                 )
+
+            # Registramos en el historial de chat
             ChatHistory.objects.create(
                 user=request.user,
                 subject=subject,
                 question=question,
                 response=raw
             )
+
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
-        # summary o answer
+
+        # Para 'summary' o 'answer'
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
             question=question,
             response=raw
         )
-        return Response({"question": question, "answer": raw})
+        return Response({
+            "question": question,
+            "answer": raw
+        })
