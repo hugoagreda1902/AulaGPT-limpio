@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import "../styles/Home.css";
 
 const Home = () => {
@@ -7,15 +8,17 @@ const Home = () => {
       <nav className="navbar">
         <div className="logo">AulaGPT</div>
         <div className="nav-links">
-          <a href="#">Iniciar sesión</a>
-          <a href="#">Registrarse</a>
+          <Link to="/login">Iniciar sesión</Link>
+          <Link to="/register">Registrarse</Link>
         </div>
       </nav>
 
       <header className="hero">
         <div className="hero-text">
           <h1>Resúmenes inteligentes con IA</h1>
-          <p>Sube documentos, recibe resúmenes y métricas educativas en segundos.</p>
+          <p>
+            Sube documentos, recibe resúmenes y métricas educativas en segundos.
+          </p>
         </div>
         <div className="hero-image">
           <img src="IMAGE_URL_HERE" alt="Vista previa AulaGPT" />
@@ -58,12 +61,18 @@ const Home = () => {
       <section className="ai-info">
         <h2>IA responsable</h2>
         <p>
-          AulaGPT usa IA de forma ética: no sustituye al aprendizaje, sino que potencia la comprensión y el seguimiento académico.
+          AulaGPT usa IA de forma ética: no sustituye al aprendizaje,
+          sino que potencia la comprensión y el seguimiento académico.
         </p>
       </section>
 
       <footer className="footer">
-        <p><a href="#">Sobre nosotros</a> • <a href="#">Privacidad</a> • <a href="#">Términos</a> • <a href="#">FAQ</a></p>
+        <p>
+          <Link to="/about">Sobre nosotros</Link> •{" "}
+          <Link to="/privacy">Privacidad</Link> •{" "}
+          <Link to="/terms">Términos</Link> •{" "}
+          <Link to="/faq">FAQ</Link>
+        </p>
       </footer>
     </div>
   );
