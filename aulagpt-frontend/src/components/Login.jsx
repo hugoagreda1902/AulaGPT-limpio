@@ -25,9 +25,25 @@ function Login() {
 
       if (response.ok) {
         localStorage.setItem("token", data.access);
+
+        // ✅ Guardamos el rol si está disponible
+        if (data.role) {
+          localStorage.setItem("role", data.role);
+
+          if (data.role === "teacher") {
+            navigate("/dashboard/teacher");
+          } else if (data.role === "student") {
+            navigate("./StudentDashboard");
+          } else {
+            navigate("/"); // Fallback
+          }
+        } else {
+          // Si no se devuelve el rol, puedes redirigir por defecto
+          navigate("./TeacherDashboard");
+        }
+
         alert("Login correcto");
         console.log("Token de acceso:", data.access);
-        navigate("/chat");
       } else {
         setErrorMsg(data.detail || "Error al iniciar sesión");
       }
