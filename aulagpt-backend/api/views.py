@@ -152,47 +152,45 @@ class TestQuestionViewSet(viewsets.ModelViewSet):
     serializer_class = TestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class TestAnswerViewSet(viewsets.ModelViewSet):
-    queryset = TestAnswer.objects.all()
-    serializer_class = TestAnswerSerializer
+class TestsViewSet(viewsets.ModelViewSet):
+    queryset = Tests.objects.all()
+    serializer_class = TestsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     @action(detail=False, methods=['post'], url_path='submit')
-    def submit(self, request):
-        user = request.user
+    def submit_answers(self, request):
         subject = request.data.get('subject')
-        answers = request.data.get('answers', [])
+        answers = request.data.get('answers')
 
         if not subject or not answers:
-            return Response({'error': 'Faltan datos requeridos'}, status=400)
+            return Response({"error": "Faltan datos"}, status=400)
 
-        # Busca el test más reciente del usuario para esa asignatura
-        test = Tests.objects.filter(creator=user, document__subject=subject).order_by('-creation_date').first()
+        # Buscar el test más reciente del usuario para esa asignatura
+        test = Tests.objects.filter(
+            creator=request.user,
+            test_name__icontains=subject
+        ).order_by('-created_at').first()
+
         if not test:
-            return Response({'error': 'No se encontró un test para esa asignatura.'}, status=404)
+            return Response({"error": "No se encontró un test para esa asignatura."}, status=404)
 
         for ans in answers:
             question_text = ans.get('question')
             selected = ans.get('selected')
 
-            question = TestQuestion.objects.filter(test=test, question_text=question_text).first()
-            if not question:
-                continue  # o registra el fallo
-
-            is_correct = question.correct_option == selected
+            try:
+                question = TestQuestion.objects.get(test=test, question_text=question_text)
+            except TestQuestion.DoesNotExist:
+                continue  # Salta esta si no la encuentra
 
             TestAnswer.objects.create(
-                user=user,
                 test=test,
                 question=question,
-                selected_option=selected,
-                is_correct=is_correct
+                student=request.user,
+                selected_option=selected
             )
 
-        Activity.objects.create(user=user, activity_type='answer')
-
-        return Response({'message': 'Respuestas guardadas correctamente.'})
-
+        return Response({"message": "Respuestas guardadas correctamente."})
 
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
@@ -204,8 +202,8 @@ class AskAPIView(APIView):
 
     def post(self, request):
         question = request.data.get('question')
-        subject  = request.data.get('subject')
-        action   = request.data.get('action', 'answer')
+        subject = request.data.get('subject')
+        action = request.data.get('action', 'answer')
 
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
@@ -251,17 +249,41 @@ class AskAPIView(APIView):
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": question}
+                    {"role": "user", "content": question}
                 ]
             )
-            respuesta = completion.choices[0].message.content.strip()
+            raw = completion.choices[0].message.content.strip()
+            items = json.loads(raw)  # Aquí parseamos el JSON del test
         except Exception as e:
-            return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
+            return Response({"error": f"Fallo en OpenAI o JSON: {e}"}, status=500)
+
+        # Guardamos el test en la base de datos
+        test = Tests.objects.create(
+            creator=request.user,
+            document=None,  # Puedes cambiarlo si asocias a un documento
+            test_name=f"Test generado para {subject}"
+        )
+
+        for it in items:
+            TestQuestion.objects.create(
+                test=test,
+                question_text=it['question'],
+                option_a=it['options'][0],
+                option_b=it['options'][1],
+                option_c=it['options'][2],
+                option_d=it['options'][3],
+                correct_option=it['correct']
+            )
 
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
             question=question,
-            response=respuesta
+            response="Test generado y guardado correctamente."
         )
-        return Response({"question": question, "answer": respuesta})
+
+        return Response({
+            "question": question,
+            "test_id": test.test_id,
+            "test": items
+        })
