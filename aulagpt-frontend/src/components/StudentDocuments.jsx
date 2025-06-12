@@ -12,10 +12,15 @@ const StudentDocuments = () => {
   const token = localStorage.getItem("accessToken");
   const asignaturas = ["Matemáticas", "Lengua", "Inglés", "Historia", "Ciencias", "Física", "Química"];
 
+  // Debug
+  console.log("Modal visible:", showModal);
+
   const fetchDocuments = async () => {
     try {
       const response = await fetch("https://aulagpt.onrender.com/api/documents/", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       setDocuments(data);
@@ -50,7 +55,6 @@ const StudentDocuments = () => {
         body: formData,
       });
 
-      const data = await response.json();
       if (response.ok) {
         setMessage("Documento subido correctamente.");
         setFile(null);
@@ -58,6 +62,7 @@ const StudentDocuments = () => {
         setShowModal(false);
         fetchDocuments();
       } else {
+        const data = await response.json();
         setMessage(data.error || "Error al subir el documento.");
       }
     } catch (err) {
@@ -78,8 +83,8 @@ const StudentDocuments = () => {
       return;
     }
 
-    const confirmDelete = window.confirm("¿Estás seguro de que deseas eliminar los documentos seleccionados?");
-    if (!confirmDelete) return;
+    const confirm = window.confirm("¿Estás seguro de que deseas eliminar los documentos seleccionados?");
+    if (!confirm) return;
 
     try {
       const response = await fetch("https://aulagpt.onrender.com/api/documents/delete-selected/", {
@@ -118,7 +123,8 @@ const StudentDocuments = () => {
 
       <main className="main-content">
         <h2>Documentos del Estudiante</h2>
-        <button type="button" onClick={() => setShowModal(true)}>Subir documento</button>
+
+        <button onClick={() => setShowModal(true)}>Subir documento</button>
 
         {message && <p>{message}</p>}
 
