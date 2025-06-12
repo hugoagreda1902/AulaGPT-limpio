@@ -3,6 +3,7 @@ import "../styles/AuthModal.css";
 
 function Register() {
   const [formData, setFormData] = useState({
+    username: "",
     name: "",
     surname: "",
     email: "",
@@ -25,6 +26,30 @@ function Register() {
     setError("");
     setSuccess(false);
 
+    // ✅ Lista de dominios válidos
+    const allowedDomains = [
+      "gmail.com",
+      "hotmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "icloud.com",
+      "protonmail.com",
+      "live.com",
+      "gmx.com",
+      "mail.com",
+      "msn.com",
+      "aol.com",
+      "zoho.com",
+      "yandex.com",
+      "student.com"
+    ];
+
+    const emailDomain = formData.email.split("@")[1];
+    if (!allowedDomains.includes(emailDomain)) {
+      setError("Por favor, usa un correo electrónico válido como Gmail, Hotmail, Outlook, etc.");
+      return;
+    }
+
     try {
       const res = await fetch("https://aulagpt.onrender.com/api/users/register/", {
         method: "POST",
@@ -35,6 +60,7 @@ function Register() {
       if (res.ok) {
         setSuccess(true);
         setFormData({
+          username: "",
           name: "",
           surname: "",
           email: "",
@@ -62,6 +88,14 @@ function Register() {
       {success && <p className="success-msg">¡Usuario registrado con éxito!</p>}
       {error && <p className="error-msg">{error}</p>}
       <form className="auth-form" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="username"
+          placeholder="Nombre de usuario"
+          value={formData.username}
+          onChange={handleChange}
+          required
+        />
         <input
           type="text"
           name="name"
