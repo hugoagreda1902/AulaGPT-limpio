@@ -28,19 +28,6 @@ export default function ChatIA() {
     return testQuestions.length > 0 && testQuestions.every((q, i) => selectedAnswers[i]);
   };
 
-  const parseTestFromResponse = (text) => {
-    const preguntas = text.split(/\n(?=Pregunta \d+:)/g);
-    return preguntas.map(preg => {
-      const lineas = preg.split("\n");
-      const pregunta = lineas[0].replace(/Pregunta \d+:\s*/, "");
-      const opciones = lineas.slice(1, 5).map(linea => linea.split(":")[1]?.trim());
-      return {
-        question: pregunta,
-        options: opciones
-      };
-    });
-  };
-
   const send = async (action = "answer") => {
     if (!input.trim() || !subject) return;
     setError("");
@@ -59,8 +46,13 @@ export default function ChatIA() {
       setHistory(h => [...h, botMsg]);
 
       if (action === "test") {
-        const parsed = parseTestFromResponse(answer);
-        if (parsed.length > 0) setTestQuestions(parsed);
+        try {
+          const parsedJSON = JSON.parse(answer);
+          const isValid = Array.isArray(parsedJSON) && parsedJSON.every(q => q.question && q.options && q.correct);
+          if (isValid) setTestQuestions(parsedJSON);
+        } catch (err) {
+          console.warn("La IA no devolvió un JSON válido para el test.");
+        }
       }
     } catch (e) {
       console.error(e);
@@ -158,8 +150,6 @@ export default function ChatIA() {
         <div className="chat-footer-buttons">
           <button className="chat-button" onClick={() => setShowUpload(prev => !prev)}>Subir documento</button>
           <button className="chat-button" onClick={() => send("answer")} disabled={loading}>Enviar</button>
-          <button className="chat-button" onClick={() => send("summary")} disabled={loading}>Generar resumen</button>
-          <button className="chat-button" onClick={() => send("test")} disabled={loading}>Generar test</button>
         </div>
       </div>
 
