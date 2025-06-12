@@ -10,25 +10,37 @@ from django.db import connection
 import time
 import traceback
 
-from .models import User, Documents, Tests, TestQuestion, TestAnswer, Activity, ChatHistory
-from .serializers import (
-    RegisterSerializer, UserSerializer, DocumentsSerializer,
-    TestsSerializer, TestQuestionSerializer, TestAnswerSerializer, ActivitySerializer
+from django.conf import settings
+import openai
+import os
+
+from .models import (
+    User,
+    Documents,
+    Tests,
+    TestQuestion,
+    TestAnswer,
+    Activity,
+    ChatHistory
 )
+from .serializers import (
+    RegisterSerializer,
+    UserSerializer,
+    DocumentsSerializer,
+    TestsSerializer,
+    TestQuestionSerializer,
+    TestAnswerSerializer,
+    ActivitySerializer,
+    CustomTokenObtainPairSerializer
+)
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .google_drive.utils import (
     obtener_carpeta_asignatura,
     obtener_o_crear_subcarpeta_usuario,
-    subir_archivo_drive, extraer_texto_de_documentos_usuario
+    subir_archivo_drive,
+    extraer_texto_de_documentos_usuario
 )
-
-from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer  # ya que está todo en serializers.py
-
-# Import OpenAI
-import openai
-from django.conf import settings  # Import settings to access API key
-import os
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -175,7 +187,7 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
 
-        # 1) Extraemos texto de todos los PDFs del usuario en esta asignatura
+        # 1) Extraer todo el texto de los PDFs del usuario en esta asignatura
         try:
             context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
             if not context_text.strip():
@@ -189,35 +201,33 @@ class AskAPIView(APIView):
                 status=500
             )
 
-        # 2) Construimos el prompt inyectando el contexto
+        # 2) Construir el prompt inyectando ese contexto
         system_prompt = (
             f"Eres AulaGPT. Usa exclusivamente el siguiente contenido para responder:\n\n"
-            f"{context_text[:8000]}\n\n"  # recortamos para evitar prompts demasiado largos
+            f"{context_text[:8000]}\n\n"  # recortamos a 8000 caracteres para evitar prompts muy largos
             "Responde de forma clara, ordenada y precisa. Si no puedes responder, di que no sabes."
         )
 
-        # 3) Llamada a OpenAI (SDK >= 1.0)
+        # 3) Llamada a OpenAI con la nueva interfaz
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-            completion = client.chat.completions.create(
+            openai.api_key = settings.OPENAI_API_KEY
+            resp = openai.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": question}
                 ]
             )
-            respuesta = completion.choices[0].message.content.strip()
+            respuesta = resp.choices[0].message.content.strip()
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
-        # 4) Guardamos en ChatHistory
+        # 4) Guardar en ChatHistory
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
             question=question,
             response=respuesta
         )
-        
+
         return Response({"question": question, "answer": respuesta})
