@@ -19,7 +19,7 @@ from .serializers import (
 from .google_drive.utils import (
     obtener_carpeta_asignatura,
     obtener_o_crear_subcarpeta_usuario,
-    subir_archivo_drive
+    subir_archivo_drive, extraer_texto_de_documentos_usuario
 )
 
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -169,77 +169,55 @@ class AskAPIView(APIView):
 
     def post(self, request):
         question = request.data.get('question')
-        subject_id = request.data.get('subject')
-        action = request.data.get('action', 'answer')
+        subject  = request.data.get('subject')
+        action   = request.data.get('action', 'answer')
 
-        if not question or not subject_id:
-            return Response(
-                {"error": "Faltan campos requeridos (question o subject)"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not question or not subject:
+            return Response({"error": "Faltan campos requeridos"}, status=400)
 
-        # Intentamos obtener un documento con ese subject_id para sacar el nombre de la asignatura
+        # 1) Extraemos texto de todos los PDFs del usuario en esta asignatura
         try:
-            document = Documents.objects.filter(subject=subject_id).first()
-            if not document:
+            context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
+            if not context_text.strip():
                 return Response(
-                    {"error": "Asignatura no encontrada"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "No se pudo extraer texto de los documentos"},
+                    status=400
                 )
-            subject_name = document.subject  # El nombre o código de la asignatura
-        except Exception:
+        except Exception as e:
             return Response(
-                {"error": "Error buscando la asignatura"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": f"Error accediendo a Drive: {e}"},
+                status=500
             )
 
+        # 2) Construimos el prompt inyectando el contexto
         system_prompt = (
-            f"Eres **AulaGPT**, un asistente educativo para la asignatura "
-            f"{subject_name}. Tu conocimiento se basa únicamente en los "
-            "documentos que el usuario ha subido.\n\n"
-            "Reglas de respuesta:\n"
-            "1. **Explicaciones**: claras y concisas, pasos numerados si hay varios.\n"
-            "2. **Resúmenes**: máximo 5 viñetas.\n"
-            "3. **Tests** (si action=='answer' y se piden tests): genera preguntas "
-            "de opción múltiple A–D y devuelve un JSON con campos "
-            "[{\"question\":…, \"options\":[…], \"correct\":\"B\"},…].\n"
-            "4. **Tono**: amigable y profesional.\n"
-            "5. **Límites**: no inventes nada fuera de los documentos subidos.\n"
+            f"Eres AulaGPT. Usa exclusivamente el siguiente contenido para responder:\n\n"
+            f"{context_text[:8000]}\n\n"  # recortamos para evitar prompts demasiado largos
+            "Responde de forma clara, ordenada y precisa. Si no puedes responder, di que no sabes."
         )
 
+        # 3) Llamada a OpenAI (SDK >= 1.0)
         try:
-            openai.api_key = settings.OPENAI_API_KEY
+            from openai import OpenAI
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-            completion = openai.ChatCompletion.create(
+            completion = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question}
+                    {"role": "user",   "content": question}
                 ]
             )
-            answer_text = completion.choices[0].message["content"].strip()
-
-            # Guardamos en historial usando el documento (subject_id) para referenciar la asignatura
-            ChatHistory.objects.create(
-                user=request.user,
-                subject=document.subject,  # guardamos el nombre o código del subject
-                question=question,
-                response=answer_text
-            )
-
-            Activity.objects.create(
-                user=request.user,
-                activity_type='summary' if action == 'summary' else 'answer'
-            )
-
-            return Response({
-                "question": question,
-                "answer": answer_text
-            }, status=status.HTTP_200_OK)
-
+            respuesta = completion.choices[0].message.content.strip()
         except Exception as e:
-            traceback.print_exc()
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
+
+        # 4) Guardamos en ChatHistory
+        ChatHistory.objects.create(
+            user=request.user,
+            subject=subject,
+            question=question,
+            response=respuesta
+        )
+        
+        return Response({"question": question, "answer": respuesta})
