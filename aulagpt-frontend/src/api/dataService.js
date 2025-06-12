@@ -23,6 +23,6 @@ export const uploadDocument = (file, subject) => {
   }).then(res => res.data);
 };
 
-// Envío de respuestas de test para métricas
+/// Envío de respuestas de test para métricas
 export const submitTest = (subject, answers) =>
-  API.post('/tests/submit/', { subject, answers }).then(res => res.data);
+  API.post('/testanswers/submit/', { subject, answers }).then(res => res.data);

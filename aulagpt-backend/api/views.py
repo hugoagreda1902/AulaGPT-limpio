@@ -1,4 +1,3 @@
-# api/views.py
 from rest_framework import viewsets, status, permissions
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -42,10 +41,8 @@ from .google_drive.utils import (
     extraer_texto_de_documentos_usuario
 )
 
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
-
 
 # --- Ping DB ---
 @api_view(['GET'])
@@ -60,14 +57,12 @@ def ping_db(request):
     elapsed = time.time() - start
     return Response({"db_status": db_status, "elapsed": elapsed})
 
-
 # --- Vista protegida ---
 class MiVistaProtegida(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return Response({"mensaje": f"Hola, {request.user.username}"})
-
 
 # --- User Management ---
 class UserViewSet(viewsets.ModelViewSet):
@@ -115,12 +110,12 @@ class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()
     serializer_class = DocumentsSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]  # Para subir archivos
+    parser_classes = [MultiPartParser, FormParser]
 
     def create(self, request, *args, **kwargs):
         usuario = request.user
         archivo = request.FILES.get('file')
-        asignatura = request.data.get('subject')  # Aquí usas 'subject'
+        asignatura = request.data.get('subject')
 
         if not archivo or not asignatura:
             return Response(
@@ -129,14 +124,10 @@ class DocumentsViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            # Obtienes la carpeta correspondiente a la asignatura
             carpeta_asignatura_id = obtener_carpeta_asignatura(asignatura)
-            # Obtienes o creas la subcarpeta para el usuario dentro de la asignatura
             carpeta_usuario_id = obtener_o_crear_subcarpeta_usuario(carpeta_asignatura_id, usuario.id)
-            # Subes el archivo a Drive y obtienes el enlace
             enlace_drive = subir_archivo_drive(archivo, carpeta_usuario_id)
 
-            # Creas el documento con 'subject'
             nuevo_documento = Documents.objects.create(
                 owner=usuario,
                 subject=asignatura,
@@ -151,30 +142,62 @@ class DocumentsViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# --- Tests y actividad ---
 class TestsViewSet(viewsets.ModelViewSet):
     queryset = Tests.objects.all()
     serializer_class = TestsSerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
 class TestQuestionViewSet(viewsets.ModelViewSet):
     queryset = TestQuestion.objects.all()
     serializer_class = TestQuestionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-
 class TestAnswerViewSet(viewsets.ModelViewSet):
     queryset = TestAnswer.objects.all()
     serializer_class = TestAnswerSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['post'], url_path='submit')
+    def submit(self, request):
+        user = request.user
+        subject = request.data.get('subject')
+        answers = request.data.get('answers', [])
+
+        if not subject or not answers:
+            return Response({'error': 'Faltan datos requeridos'}, status=400)
+
+        # Busca el test más reciente del usuario para esa asignatura
+        test = Tests.objects.filter(creator=user, document__subject=subject).order_by('-creation_date').first()
+        if not test:
+            return Response({'error': 'No se encontró un test para esa asignatura.'}, status=404)
+
+        for ans in answers:
+            question_text = ans.get('question')
+            selected = ans.get('selected')
+
+            question = TestQuestion.objects.filter(test=test, question_text=question_text).first()
+            if not question:
+                continue  # o registra el fallo
+
+            is_correct = question.correct_option == selected
+
+            TestAnswer.objects.create(
+                user=user,
+                test=test,
+                question=question,
+                selected_option=selected,
+                is_correct=is_correct
+            )
+
+        Activity.objects.create(user=user, activity_type='answer')
+
+        return Response({'message': 'Respuestas guardadas correctamente.'})
 
 
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.all()
     serializer_class = ActivitySerializer
     permission_classes = [permissions.IsAuthenticated]
-
 
 class AskAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -187,12 +210,10 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
 
-        # Extraemos los PDFs como antes...
         context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
         if not context_text.strip():
             return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
 
-        # --- Aquí diferenciamos acciones ---
         if action == 'test':
             system_prompt = (
                 f"Eres AulaGPT, un generador de tests interactivos para la asignatura {subject}.\n"
@@ -223,9 +244,7 @@ class AskAPIView(APIView):
                 f"Usa SOLO este contenido:\n\n{context_text[:8000]}\n\n"
                 "Responde a la pregunta de forma clara y concisa."
             )
-        # -----------------------------------
 
-        # Llamada a OpenAI (versión clásica)
         openai.api_key = settings.OPENAI_API_KEY
         try:
             completion = openai.ChatCompletion.create(
@@ -239,7 +258,6 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
-        # Guardar en historial...
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
