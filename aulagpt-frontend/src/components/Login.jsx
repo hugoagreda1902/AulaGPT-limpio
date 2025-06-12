@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./AuthModal.css"; // Reutilizamos el CSS del modal
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -23,9 +24,7 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        // Guarda el token de acceso (JWT) en localStorage.
-        localStorage.setItem("token", data.access); // Aquí usamos data.access correctamente
-
+        localStorage.setItem("token", data.access);
         alert("Login correcto");
         console.log("Token de acceso:", data.access);
         navigate("/chat");
@@ -39,27 +38,27 @@ function Login() {
   };
 
   return (
-    <div>
+    <>
       <h2>Iniciar sesión</h2>
-      <form onSubmit={handleSubmit}>
+      <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="email"
           placeholder="Correo electrónico"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-        /><br />
+        />
         <input
           type="password"
           placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-        /><br />
+        />
         <button type="submit">Entrar</button>
       </form>
-      {errorMsg && <p style={{ color: "red" }}>{errorMsg}</p>}
-    </div>
+      {errorMsg && <p className="error-msg">{errorMsg}</p>}
+    </>
   );
 }
 

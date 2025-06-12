@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./AuthModal.css"; // Asegúrate de importar los estilos
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -6,13 +7,12 @@ function Register() {
     surname: "",
     email: "",
     password: "",
-    role: "student", // valor por defecto
+    role: "student",
   });
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  // Maneja cambios en los inputs
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -20,52 +20,48 @@ function Register() {
     });
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setSuccess(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
 
-  console.log("Enviando formulario:", formData);
+    try {
+      const res = await fetch("https://aulagpt.onrender.com/api/users/register/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-  try {
-    const res = await fetch("https://aulagpt.onrender.com/api/users/register/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-
-    console.log("Respuesta status:", res.status);
-
-    if (res.ok) {
-      setSuccess(true);
-      setFormData({ name: "", surname: "", email: "", password: "", role: "student" });
-    } else {
-      const data = await res.json();
-      console.log("Respuesta error JSON:", data);
-
-      // Si data es un objeto con errores, intenta mostrar todos
-    if (typeof data === 'object') {
-      const allErrors = Object.values(data).flat().join(" ");
-      setError(allErrors || "Error en el registro");
-    } else {
-      setError("Error en el registro.");
+      if (res.ok) {
+        setSuccess(true);
+        setFormData({
+          name: "",
+          surname: "",
+          email: "",
+          password: "",
+          role: "student",
+        });
+      } else {
+        const data = await res.json();
+        if (typeof data === "object") {
+          const allErrors = Object.values(data).flat().join(" ");
+          setError(allErrors || "Error en el registro");
+        } else {
+          setError("Error en el registro.");
+        }
+      }
+    } catch (error) {
+      console.error("Error en fetch:", error);
+      setError("Error de conexión al servidor");
     }
-
-    }
-  } catch (error) {
-    console.error("Error en fetch:", error);
-    setError("Error de conexión al servidor");
-  }
-};
-
-
+  };
 
   return (
-    <div className="register-container">
+    <>
       <h2>Registro de usuario</h2>
-      {success && <p style={{ color: "green" }}>Usuario registrado con éxito!</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
+      {success && <p className="success-msg">¡Usuario registrado con éxito!</p>}
+      {error && <p className="error-msg">{error}</p>}
+      <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="name"
@@ -105,7 +101,7 @@ function Register() {
         </select>
         <button type="submit">Registrarse</button>
       </form>
-    </div>
+    </>
   );
 }
 
