@@ -187,7 +187,7 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=400)
 
-        # 1) Extraer todo el texto de los PDFs del usuario en esta asignatura
+        # 1) Extraer texto de los PDFs del usuario en esta asignatura
         try:
             context_text = extraer_texto_de_documentos_usuario(subject, request.user.id)
             if not context_text.strip():
@@ -201,28 +201,28 @@ class AskAPIView(APIView):
                 status=500
             )
 
-        # 2) Construir el prompt inyectando ese contexto
+        # 2) Construir el prompt
         system_prompt = (
             f"Eres AulaGPT. Usa exclusivamente el siguiente contenido para responder:\n\n"
-            f"{context_text[:8000]}\n\n"  # recortamos a 8000 caracteres para evitar prompts muy largos
+            f"{context_text[:8000]}\n\n"
             "Responde de forma clara, ordenada y precisa. Si no puedes responder, di que no sabes."
         )
 
-        # 3) Llamada a OpenAI con la nueva interfaz
+        # 3) Llamada a OpenAI usando ChatCompletion.create
         try:
             openai.api_key = settings.OPENAI_API_KEY
-            resp = openai.chat.completions.create(
+            completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user",   "content": question}
                 ]
             )
-            respuesta = resp.choices[0].message.content.strip()
+            respuesta = completion.choices[0].message.content.strip()
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
-        # 4) Guardar en ChatHistory
+        # 4) Guardar en historial
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
