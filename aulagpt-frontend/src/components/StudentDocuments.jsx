@@ -122,7 +122,7 @@ const StudentDocuments = () => {
       <main className="main-content">
         <h2>Documentos del Estudiante</h2>
 
-        <button onClick={() => setShowModal(true)}>Subir documento</button>
+        <button type="button" onClick={() => setShowModal(true)}>Subir documento</button>
 
         {message && <p>{message}</p>}
 
@@ -147,7 +147,7 @@ const StudentDocuments = () => {
                     </li>
                   ))}
                 </ul>
-                <button onClick={handleDeleteSelected}>Eliminar seleccionados</button>
+                <button type="button" onClick={handleDeleteSelected}>Eliminar seleccionados</button>
               </>
             ) : (
               <p>No hay documentos subidos.</p>
