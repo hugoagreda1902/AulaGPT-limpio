@@ -7,8 +7,11 @@ const StudentDocuments = () => {
   const [message, setMessage] = useState("");
   const [documents, setDocuments] = useState([]);
   const [selectedDocs, setSelectedDocs] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   const token = localStorage.getItem("accessToken");
+
+  const asignaturas = ["Matemáticas", "Lengua", "Inglés", "Historia", "Ciencias", "Física", "Química"];
 
   const fetchDocuments = async () => {
     try {
@@ -54,6 +57,7 @@ const StudentDocuments = () => {
         setMessage("Documento subido correctamente.");
         setFile(null);
         setSubject("");
+        setShowModal(false);
         fetchDocuments();
       } else {
         const data = await response.json();
@@ -118,17 +122,7 @@ const StudentDocuments = () => {
       <main className="main-content">
         <h2>Documentos del Estudiante</h2>
 
-        <form className="upload-form" onSubmit={handleUpload}>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} required />
-          <input
-            type="text"
-            placeholder="Asignatura"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-          />
-          <button type="submit">Subir documento</button>
-        </form>
+        <button onClick={() => setShowModal(true)}>Subir documento</button>
 
         {message && <p>{message}</p>}
 
@@ -161,6 +155,25 @@ const StudentDocuments = () => {
           </div>
         </section>
       </main>
+
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Subir Documento</h3>
+            <form onSubmit={handleUpload}>
+              <input type="file" onChange={(e) => setFile(e.target.files[0])} required />
+              <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
+                <option value="">Selecciona una asignatura</option>
+                {asignaturas.map((a, i) => (
+                  <option key={i} value={a}>{a}</option>
+                ))}
+              </select>
+              <button type="submit">Subir</button>
+              <button type="button" onClick={() => setShowModal(false)}>Cancelar</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
