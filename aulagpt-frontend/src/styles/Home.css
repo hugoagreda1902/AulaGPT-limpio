@@ -1,50 +1,97 @@
-.home {
+.home-page {
   font-family: 'Fira Code', 'Courier New', monospace;
   background-color: #fff;
   color: #111;
   padding: 2rem;
+  line-height: 1.6;
 }
 
-.navbar {
+.header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #ccc;
+  margin-bottom: 2rem;
 }
 
-.nav-links a {
-  margin-left: 1rem;
-  text-decoration: none;
-  color: #111;
+.logo {
+  font-size: 1.8rem;
   font-weight: bold;
 }
 
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3rem 0;
-  text-align: center;
+.access-dot {
+  width: 18px;
+  height: 18px;
+  background-color: #888;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-.hero img {
-  max-width: 100%;
-  height: auto;
+.access-dot:hover {
+  background-color: #000;
+}
+
+.main-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtext {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3rem;
+}
+
+.column {
+  flex: 1 1 45%;
+  min-width: 280px;
+}
+
+.column h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.column p,
+.column ul {
+  font-size: 0.95rem;
+  color: #222;
+}
+
+.column ul {
+  padding-left: 1.2rem;
+}
+
+.computer-img {
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 1.5rem;
   border: 1px solid #ccc;
   border-radius: 8px;
-  margin-top: 1rem;
 }
 
-section {
+.footer {
   margin-top: 3rem;
-  padding: 1rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #777;
   border-top: 1px solid #eee;
+  padding-top: 2rem;
 }
 
-footer {
-  margin-top: 4rem;
-  text-align: center;
-  color: #666;
-  font-size: 0.9rem;
+.footer a {
+  color: #777;
+  text-decoration: none;
+  margin: 0 0.5rem;
+}
+
+.footer a:hover {
+  text-decoration: underline;
 }
