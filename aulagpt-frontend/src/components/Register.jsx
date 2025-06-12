@@ -90,6 +90,8 @@ function Register() {
     }
   };
 
+  const symbol = (valid) => (valid ? "●" : "✖");
+
   return (
     <>
       <h2>Registro de usuario</h2>
@@ -148,22 +150,12 @@ function Register() {
           </button>
         </div>
 
-        <ul className="password-checklist">
-          <li className={passwordChecks.length ? "valid" : "invalid"}>
-            {passwordChecks.length ? "✅" : "❌"} Mínimo 6 caracteres
-          </li>
-          <li className={passwordChecks.upper ? "valid" : "invalid"}>
-            {passwordChecks.upper ? "✅" : "❌"} Una letra mayúscula
-          </li>
-          <li className={passwordChecks.lower ? "valid" : "invalid"}>
-            {passwordChecks.lower ? "✅" : "❌"} Una letra minúscula
-          </li>
-          <li className={passwordChecks.number ? "valid" : "invalid"}>
-            {passwordChecks.number ? "✅" : "❌"} Un número
-          </li>
-          <li className={passwordChecks.special ? "valid" : "invalid"}>
-            {passwordChecks.special ? "✅" : "❌"} Un carácter especial
-          </li>
+        <ul className="password-checklist simple">
+          <li>{symbol(passwordChecks.length)} Mínimo 6 caracteres</li>
+          <li>{symbol(passwordChecks.upper)} Una letra mayúscula</li>
+          <li>{symbol(passwordChecks.lower)} Una letra minúscula</li>
+          <li>{symbol(passwordChecks.number)} Un número</li>
+          <li>{symbol(passwordChecks.special)} Un carácter especial</li>
         </ul>
 
         <select name="role" value={formData.role} onChange={handleChange} required>

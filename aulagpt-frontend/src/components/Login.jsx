@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/AuthModal.css";
 
+// Font Awesome imports
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +31,6 @@ function Login() {
       if (response.ok) {
         localStorage.setItem("accessToken", data.access);
         localStorage.setItem("refreshToken", data.refresh);
-
         localStorage.setItem("user", JSON.stringify({
           id: data.id,
           name: data.name,
@@ -42,8 +45,6 @@ function Login() {
         } else {
           navigate("/");
         }
-
-        console.log("Login exitoso");
       } else {
         setErrorMsg(data.detail || "Error al iniciar sesión");
       }
@@ -82,7 +83,7 @@ function Login() {
             onClick={() => setShowPassword(!showPassword)}
             className="toggle-password"
           >
-            {showPassword ? "🙈" : "👁️"}
+            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
           </button>
         </div>
 
