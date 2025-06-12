@@ -216,20 +216,13 @@ class AskAPIView(APIView):
 
         if action == 'test':
             system_prompt = (
-                f"Eres AulaGPT, un generador de tests interactivos para la asignatura {subject}.\n"
-                f"Usa exclusivamente el siguiente contenido:\n\n{context_text[:8000]}\n\n"
-                "Genera un test con 5 preguntas de opción múltiple. Para cada pregunta, incluye:\n"
-                "- El enunciado como 'question'\n"
-                "- Cuatro opciones como una lista en 'options'\n"
-                "- La opción correcta como 'correct' (una letra: A, B, C o D)\n\n"
-                "Devuelve SOLO un JSON con este formato (sin explicaciones ni texto extra):\n"
+                f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
+                f"Usa únicamente el siguiente contenido:\n\n{context_text[:8000]}\n\n"
+                "Genera 5 preguntas de opción múltiple en **JSON puro**, **sin ningún comentario, explicación o texto adicional**. "
+                "El formato debe ser exactamente:\n\n"
                 "[\n"
-                "  {\n"
-                "    \"question\": \"¿Cuál es el resultado de 2+2?\",\n"
-                "    \"options\": [\"1\", \"2\", \"3\", \"4\"],\n"
-                "    \"correct\": \"D\"\n"
-                "  },\n"
-                "  ...\n"
+                "  {\"question\":\"...\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"correct\":\"B\"},\n"
+                "  …\n"
                 "]"
             )
         elif action == 'summary':
@@ -258,7 +251,7 @@ class AskAPIView(APIView):
             raw = completion.choices[0].message.content.strip()
 
             # --- Extracción segura de JSON del texto generado ---
-            match = re.search(r'\[\s*{.*?}\s*\]', raw, re.DOTALL)
+            match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
                 return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
 
