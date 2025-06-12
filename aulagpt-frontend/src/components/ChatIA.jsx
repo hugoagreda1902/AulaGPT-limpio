@@ -2,7 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import "../styles/ChatIA.css";
 import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
 
-const SUBJECTS = ["matematicas", "lengua", "ingles", "historia", "ciencias", "fisica", "quimica"];
+const SUBJECTS = [
+  "matematicas", "lengua", "ingles", "historia",
+  "ciencias", "fisica", "quimica"
+];
 
 export default function ChatIA() {
   const [subject, setSubject] = useState(SUBJECTS[0]);
@@ -25,7 +28,7 @@ export default function ChatIA() {
   }, [history, loading]);
 
   const isTestReadyToSend = () => {
-    return testQuestions.length > 0 && testQuestions.every((q, i) => selectedAnswers[i]);
+    return testQuestions.length > 0 && testQuestions.every((_, i) => selectedAnswers[i]);
   };
 
   const send = async (action = "answer") => {
@@ -35,38 +38,36 @@ export default function ChatIA() {
     setTestQuestions([]);
     setSelectedAnswers({});
 
+    // Agrega mensaje de usuario
     const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
-    setHistory(h => [...h, userMsg]);
+    setHistory(prev => [...prev, userMsg]);
     const question = input;
     setInput("");
 
     try {
       const actualAction = question.toLowerCase().includes("test") ? "test" : action;
       const data = await askQuestion(question, subject, actualAction);
-      const serverError = data.error;
-      const answer = data.answer;
 
-      if (serverError) {
-        const msg = serverError.includes("JSON válido")
+      // Manejo de errores del servidor
+      if (data.error) {
+        const msg = data.error.includes("JSON válido")
           ? "❌ No se pudo generar el test. Asegúrate de que hay documentos subidos y reformula tu pregunta."
           : "❌ Error al procesar tu petición. Inténtalo de nuevo.";
-        const botMsg = { timestamp: new Date(), autor: "ia", texto: msg };
-        setHistory(h => [...h, botMsg]);
+        setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: msg }]);
         return;
       }
 
-      const botMsg = { timestamp: new Date(), autor: "ia", texto: answer };
-      setHistory(h => [...h, botMsg]);
-
-      if (actualAction === "test") {
-        try {
-          const parsedJSON = JSON.parse(answer);
-          const isValid = Array.isArray(parsedJSON) && parsedJSON.every(q => q.question && q.options && q.correct);
-          if (isValid) setTestQuestions(parsedJSON);
-        } catch (err) {
-          console.warn("La IA no devolvió un JSON válido para el test.");
-        }
+      // Flujo de test interactivo
+      if (actualAction === "test" && Array.isArray(data.test)) {
+        setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Aquí tienes tu test interactivo:" }]);
+        setTestQuestions(data.test);
+        return;
       }
+
+      // Flujo normal de respuesta o resumen
+      const botMsg = { timestamp: new Date(), autor: "ia", texto: data.answer };
+      setHistory(prev => [...prev, botMsg]);
+
     } catch (e) {
       console.error(e);
       setError("Error comunicándose con el servidor");
@@ -103,7 +104,7 @@ export default function ChatIA() {
         selected: selectedAnswers[i]
       }));
       await submitTest(subject, answers);
-      setHistory(h => [...h, { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }]);
+      setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }]);
       setTestQuestions([]);
       setSelectedAnswers({});
     } catch (e) {
@@ -116,9 +117,7 @@ export default function ChatIA() {
       <div className="chat-header">
         <h1 className="chat-title">AulaGPT</h1>
         <select className="subject-selector" value={subject} onChange={e => setSubject(e.target.value)}>
-          {SUBJECTS.map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
+          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
