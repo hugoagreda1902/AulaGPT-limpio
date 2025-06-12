@@ -13,6 +13,7 @@ from django.conf import settings
 import openai
 import os
 import json
+import re
 
 from .models import (
     User,
