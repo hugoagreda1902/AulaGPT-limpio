@@ -10,12 +10,14 @@ const API = axios.create({
 // Interceptor para incluir el token JWT si existe
 API.interceptors.request.use(
   (config) => {
+    // Leemos el mismo key que usas en el login
     const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
 );
-
 
 export default API;

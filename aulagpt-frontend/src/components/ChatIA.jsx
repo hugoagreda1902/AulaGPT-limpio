@@ -38,6 +38,7 @@ export default function ChatIA() {
     setTestQuestions([]);
     setSelectedAnswers({});
 
+    // Agrega mensaje de usuario
     const userMsg = { timestamp: new Date(), autor: "usuario", texto: input };
     setHistory(prev => [...prev, userMsg]);
     const question = input;
@@ -47,21 +48,30 @@ export default function ChatIA() {
       const actualAction = question.toLowerCase().includes("test") ? "test" : action;
       const data = await askQuestion(question, subject, actualAction);
 
+      // DEBUG: ver en consola la respuesta completa
+      console.log("📥 RESPUESTA /ask/:", data);
+
+      // Manejo de errores del servidor
       if (data.error) {
         const msg = data.error.includes("JSON válido")
           ? "❌ No se pudo generar el test. Asegúrate de que hay documentos subidos y reformula tu pregunta."
-          : "❌ Error al procesar tu petición. Inténtalo de nuevo.";
+          : data.error;
         setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: msg }]);
         return;
       }
 
+      // Flujo de test interactivo
       if (actualAction === "test" && Array.isArray(data.test)) {
         setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Aquí tienes tu test interactivo:" }]);
         setTestQuestions(data.test);
         return;
       }
 
-      const botMsg = { timestamp: new Date(), autor: "ia", texto: data.answer };
+      // Flujo normal de respuesta o resumen con fallback
+      const text = data.answer
+        ? data.answer
+        : "❌ Respuesta vacía, revisa la consola.";
+      const botMsg = { timestamp: new Date(), autor: "ia", texto: text };
       setHistory(prev => [...prev, botMsg]);
 
     } catch (e) {
@@ -112,7 +122,11 @@ export default function ChatIA() {
     <div className="chat-container">
       <div className="chat-header">
         <h1 className="chat-title">AulaGPT</h1>
-        <select className="subject-selector" value={subject} onChange={e => setSubject(e.target.value)}>
+        <select
+          className="subject-selector"
+          value={subject}
+          onChange={e => setSubject(e.target.value)}
+        >
           {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -121,8 +135,13 @@ export default function ChatIA() {
         {history.map((msg, i) => {
           const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
           return (
-            <div key={i} className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}>
-              <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+            <div
+              key={i}
+              className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}
+            >
+              <p className="timestamp">
+                {new Date(msg.timestamp).toLocaleTimeString()}
+              </p>
               {!isTestIntro && <p>{msg.texto}</p>}
             </div>
           );
@@ -159,14 +178,23 @@ export default function ChatIA() {
           disabled={loading}
         />
         <div className="chat-footer-buttons">
-          <button className="chat-button" onClick={() => setShowUpload(prev => !prev)}>Subir documento</button>
-          <button className="chat-button" onClick={() => send("answer")} disabled={loading}>Enviar</button>
+          <button
+            className="chat-button"
+            onClick={() => setShowUpload(prev => !prev)}
+          >Subir documento</button>
+          <button
+            className="chat-button"
+            onClick={() => send("answer")}
+            disabled={loading}
+          >Enviar</button>
         </div>
       </div>
 
       {isTestReadyToSend() && (
         <div className="submit-test">
-          <button className="chat-button" onClick={handleSubmitTest}>Enviar test</button>
+          <button className="chat-button" onClick={handleSubmitTest}>
+            Enviar test
+          </button>
         </div>
       )}
 
@@ -175,7 +203,10 @@ export default function ChatIA() {
       {showUpload && (
         <div className="upload-section">
           <form onSubmit={handleUpload} className="space-y-2">
-            <input type="file" onChange={e => setFile(e.target.files[0])} />
+            <input
+              type="file"
+              onChange={e => setFile(e.target.files[0])}
+            />
             <button type="submit" className="chat-button">Subir</button>
           </form>
           {uploadErr && <p className="chat-error">{uploadErr}</p>}
