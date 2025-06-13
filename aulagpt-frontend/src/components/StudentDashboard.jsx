@@ -13,9 +13,21 @@ const StudentDashboard = () => {
   const goToChat = () => navigate("/chat");
   const goToDocuments = () => navigate("/documents");
 
-  const handleRevealCode = () => {
-    const confirm = window.confirm("¿Estás seguro de que quieres ver tu código de invitación?");
-    if (confirm) setShowCode(true);
+  const toggleInviteCode = () => {
+    if (showCode) {
+      setShowCode(false);
+    } else {
+      const confirm = window.confirm("¿Estás seguro de que quieres ver tu código de invitación?");
+      if (confirm) setShowCode(true);
+    }
+  };
+
+  const handleLogout = () => {
+    const confirm = window.confirm("¿Seguro que quieres cerrar sesión?");
+    if (confirm) {
+      localStorage.clear();
+      window.location.href = "/login"; // o navigate("/login")
+    }
   };
 
   return (
@@ -25,7 +37,12 @@ const StudentDashboard = () => {
           <h1 className="logo">AulaGPT</h1>
         </div>
         <div className="header-right">
-          <div className="access-dot green-dot" title="Cerrar sesión"></div>
+          <button
+            className="access-dot green-dot"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            onClick={handleLogout}
+          />
         </div>
       </header>
 
@@ -52,15 +69,13 @@ const StudentDashboard = () => {
                   <span>
                     {showCode ? user.invite_code : "******"}
                   </span>
-                  {!showCode && (
-                    <button
-                      onClick={handleRevealCode}
-                      className="reveal-btn"
-                      aria-label="Mostrar código de invitación"
-                    >
-                      Ver
-                    </button>
-                  )}
+                  <button
+                    onClick={toggleInviteCode}
+                    className="reveal-btn"
+                    aria-label={showCode ? "Ocultar código de invitación" : "Mostrar código de invitación"}
+                  >
+                    {showCode ? "Ocultar" : "Ver"}
+                  </button>
                 </div>
               </div>
             )}
