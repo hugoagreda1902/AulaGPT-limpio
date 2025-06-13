@@ -31,7 +31,7 @@ function Login() {
       if (response.ok) {
         const user = data.user;
         localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("accessToken", data.token);
+        localStorage.setItem("token", data.token); // ✅ coincidirá con axiosConfig.js
 
         // ✅ Mostrar éxito visualmente
         setMessage("Inicio de sesión exitoso ✓");
