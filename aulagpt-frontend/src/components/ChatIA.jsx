@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import "../styles/ChatIA.css";
+import { useNavigate } from "react-router-dom";
+import logo from "../images/LogoAulaGPT.png";
 import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
+import "../styles/ChatIA.css";
 
 const SUBJECTS = [
   "matematicas", "lengua", "ingles", "historia",
@@ -13,16 +15,26 @@ export default function ChatIA() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showUpload, setShowUpload] = useState(false);
-  const [file, setFile] = useState(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const [uploadErr, setUploadErr] = useState("");
+  const [file, setFile] = useState(null);
   const [testQuestions, setTestQuestions] = useState([]);
   const [selectedAnswers, setSelectedAnswers] = useState({});
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
   const chatRef = useRef();
+  const modalRef = useRef();
+  const navigate = useNavigate();
+
+  const formatFileSize = (size) => {
+    const kb = size / 1024;
+    if (kb >= 1024) return `${(kb / 1024).toFixed(1)} MB`;
+    return `${kb.toFixed(1)} KB`;
+  };
 
   useEffect(() => {
-    if (chatRef.current) {
+    if (chatRef.current && history.length > 0) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [history, loading]);
@@ -80,12 +92,19 @@ export default function ChatIA() {
       setUploadErr("Selecciona un archivo y una asignatura.");
       return;
     }
+
+    const maxBytes = 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setUploadErr("❌ El archivo supera el límite de 100 MB.");
+      return;
+    }
+
     try {
       await uploadDocument(file, subject);
-      setUploadMsg("Documento subido correctamente.");
+      setUploadMsg("✅ Documento subido correctamente.");
       setFile(null);
     } catch {
-      setUploadErr("Error al subir el documento.");
+      setUploadErr("❌ Error al subir el documento.");
     }
   };
 
@@ -108,111 +127,169 @@ export default function ChatIA() {
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        triggerClose();
+      }
+    };
+    if (showUploadModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showUploadModal]);
+
+  const triggerClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShowUploadModal(false);
+    }, 200);
+  };
+
   return (
-    <div className="chat-container">
-      {/* Encabezado */}
-      <div className="chat-header">
-        <h1 className="chat-title">AulaGPT</h1>
-        <select
-          className="subject-selector"
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-        >
-          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
-
-      {/* Cuerpo del chat */}
-      <div className="chat-body" ref={chatRef}>
-        {history.map((msg, i) => {
-          const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
-          return (
-            <div
-              key={i}
-              className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}
-            >
-              <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
-              {!isTestIntro && <p>{msg.texto}</p>}
-            </div>
-          );
-        })}
-
-        {/* Preguntas del test */}
-        {testQuestions.map((q, i) => (
-          <div key={i} className="test-question">
-            <p><strong>{i + 1}. {q.question}</strong></p>
-            <div className="test-options">
-              {q.options.map((opt, idx) => (
-                <label key={idx}>
-                  <input
-                    type="radio"
-                    name={`question-${i}`}
-                    value={String.fromCharCode(65 + idx)}
-                    checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
-                    onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
-                  />
-                  {String.fromCharCode(65 + idx)}. {opt}
-                </label>
-              ))}
-            </div>
+    <div className="chat-page">
+      <div className="chat-container">
+        {/* Header */}
+        <div className="chat-header">
+          <div className="chat-logo-group">
+            <img src={logo} alt="Logo AulaGPT" className="logo-icon" />
+            <h1 className="chat-title">AulaGPT</h1>
           </div>
-        ))}
+          <div className="chat-controls">
+            <select
+              className="subject-selector"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+            >
+              {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button className="chat-button" onClick={() => navigate("/dashboard/student")}>
+              Volver al Dashboard
+            </button>
+          </div>
+        </div>
 
-        {loading && <p className="loading-msg">Cargando…</p>}
-      </div>
+        {/* Chat Body */}
+        <div className="chat-body" ref={chatRef}>
+          {history.map((msg, i) => {
+            const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
+            return (
+              <div
+                key={i}
+                className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}
+              >
+                <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                {!isTestIntro && <p>{msg.texto}</p>}
+              </div>
+            );
+          })}
+          {testQuestions.map((q, i) => (
+            <div key={i} className="test-question">
+              <p><strong>{i + 1}. {q.question}</strong></p>
+              <div className="test-options">
+                {q.options.map((opt, idx) => (
+                  <label key={idx}>
+                    <input
+                      type="radio"
+                      name={`question-${i}`}
+                      value={String.fromCharCode(65 + idx)}
+                      checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
+                      onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
+                    />
+                    {String.fromCharCode(65 + idx)}. {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          {loading && <p className="loading-msg">Cargando…</p>}
+        </div>
 
-      {/* Footer de entrada */}
-      <div className="chat-footer">
-        <input
-          type="text"
-          className="chat-input"
-          placeholder="Escribe tu mensaje"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && send("answer")}
-          disabled={loading}
-        />
-        <div className="chat-footer-buttons">
-          <button
-            className="chat-button"
-            onClick={() => setShowUpload(prev => !prev)}
-          >
-            Subir documento
-          </button>
-          <button
-            className="chat-button"
-            onClick={() => send("answer")}
+        {/* Footer */}
+        <div className="chat-footer">
+          <input
+            type="text"
+            className="chat-input"
+            placeholder="Escribe tu mensaje"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && send("answer")}
             disabled={loading}
-          >
-            Enviar
-          </button>
+          />
+          <div className="chat-footer-buttons">
+            <button
+              className="chat-button"
+              onClick={() => setShowUploadModal(true)}
+            >
+              📎 Subir documento
+            </button>
+            <button
+              className="chat-button"
+              onClick={() => send("answer")}
+              disabled={loading}
+            >
+              Enviar
+            </button>
+          </div>
         </div>
+
+        {isTestReadyToSend() && (
+          <div className="submit-test">
+            <button className="chat-button" onClick={handleSubmitTest}>
+              Enviar test
+            </button>
+          </div>
+        )}
+
+        {error && <p className="chat-error">{error}</p>}
       </div>
 
-      {/* Botón para enviar test */}
-      {isTestReadyToSend() && (
-        <div className="submit-test">
-          <button className="chat-button" onClick={handleSubmitTest}>
-            Enviar test
-          </button>
-        </div>
-      )}
-
-      {/* Errores */}
-      {error && <p className="chat-error">{error}</p>}
-
-      {/* Subida de documentos */}
-      {showUpload && (
-        <div className="upload-section">
-          <form onSubmit={handleUpload}>
-            <input
-              type="file"
-              onChange={e => setFile(e.target.files[0])}
-            />
-            <button type="submit" className="chat-button">Subir</button>
-          </form>
-          {uploadErr && <p className="chat-error">{uploadErr}</p>}
-          {uploadMsg && <p className="chat-success">{uploadMsg}</p>}
+      {/* Modal Subida Documento */}
+      {showUploadModal && (
+        <div className={`modal-overlay show ${isClosing ? "closing" : ""}`}>
+          <div className="modal-content" ref={modalRef}>
+            <h3>Subir documento</h3>
+            <p>Selecciona un archivo para que la IA pueda ayudarte.</p>
+            <form onSubmit={handleUpload} className="modal-form">
+              <input
+                type="file"
+                id="fileUpload"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const selectedFile = e.target.files[0];
+                  if (selectedFile) {
+                    const maxBytes = 100 * 1024 * 1024;
+                    if (selectedFile.size > maxBytes) {
+                      setUploadErr("❌ El archivo supera el límite de 100 MB.");
+                      setFile(null);
+                    } else {
+                      setUploadErr("");
+                      setFile(selectedFile);
+                    }
+                  }
+                }}
+              />
+              <label htmlFor="fileUpload" className="upload-button">
+                Seleccionar archivo
+              </label>
+              {file && (
+                <p style={{ fontSize: "0.85rem", color: "#333", marginTop: "0.5rem" }}>
+                  📄 <strong>{file.name}</strong> · {formatFileSize(file.size)}
+                </p>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+                <button type="button" className="reveal-btn" onClick={triggerClose}>
+                  Cancelar
+                </button>
+                <button type="submit" className="chat-button">Subir</button>
+              </div>
+            </form>
+            {uploadErr && <p className="chat-error">{uploadErr}</p>}
+            {uploadMsg && <p className="chat-success">{uploadMsg}</p>}
+          </div>
         </div>
       )}
     </div>

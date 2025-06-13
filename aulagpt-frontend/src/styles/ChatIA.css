@@ -1,227 +1,290 @@
-/* -------------------- CONTENEDOR PRINCIPAL -------------------- */
-.chat-container {
-  background-color: white;
-  width: 100%;
-  max-width: 768px;
-  height: 85vh;
-  margin: 2rem auto;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  font-family: system-ui, sans-serif;
+/* Estructura general */
+.chat-page {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  background-color: #fff;
+  color: #111;
+  min-height: 100vh;
+  padding: 2rem 2rem 0 2rem; /* sin empujar desde arriba */
+  box-sizing: border-box;
 }
 
-/* -------------------- ENCABEZADO -------------------- */
+/* Contenedor principal */
+.chat-container {
+  max-width: 860px;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 2rem;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.chat-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-icon {
+  height: 40px;
 }
 
 .chat-title {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: bold;
-  margin: 0;
+}
+
+.chat-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.subject-selector,
+.chat-button {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .subject-selector {
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 0.875rem;
-  background-color: white;
-  transition: border-color 0.2s ease;
+  background-color: #f0f0f0;
 }
 
-.subject-selector:focus {
-  outline: none;
-  border-color: #3b82f6;
+.chat-button {
+  background-color: #111;
+  color: #fff;
+  transition: background-color 0.3s ease;
+  min-width: 120px;
 }
 
-/* -------------------- MENSAJES / HISTORIAL -------------------- */
+.chat-button:hover {
+  background-color: #333;
+}
+
+/* Cuerpo del chat */
 .chat-body {
-  flex: 1;
-  padding: 1rem;
-  overflow-y: auto;
-  background-color: #f9fafb;
+  max-height: none;
+  overflow-y: visible;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
+  padding-right: 0.5rem;
+  border: none;
+  border-radius: 6px;
 }
 
+/* Mensajes */
 .chat-bubble {
-  max-width: 75%;
-  padding: 0.5rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  animation: fadeIn 0.3s ease-out;
-  word-break: break-word;
+  padding: 0;
+  margin: 0.25rem 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  max-width: 100%;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #111;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
 .user-msg {
   align-self: flex-end;
-  background-color: #dbeafe;
+  text-align: right;
 }
 
 .assistant-msg {
   align-self: flex-start;
-  background-color: #f3f4f6;
+  text-align: left;
 }
 
 .timestamp {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-bottom: 0.25rem;
+  font-size: 0.7rem;
+  color: #999;
+  margin-bottom: 0.2rem;
 }
 
-/* -------------------- FOOTER (ENTRADA DE TEXTO + BOTONES) -------------------- */
+/* Footer del chat con input encima */
 .chat-footer {
-  padding: 1rem;
-  background-color: #ffffff;
-  border-top: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
+/* Input alineado a botones del header */
 .chat-input {
-  width: 100%;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.875rem;
-  background-color: white;
-  transition: border-color 0.2s ease;
+  font-family: inherit;
+  padding: 0.7rem 1.2rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.3s;
+  min-width: 250px;
+  width: 95%; 
 }
 
 .chat-input:focus {
-  outline: none;
-  border-color: #3b82f6;
+  border-color: #888;
 }
 
+/* Botones debajo con separación real */
 .chat-footer-buttons {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.chat-button {
-  background-color: #3b82f6;
-  color: white;
-  padding: 8px 16px;
-  font-size: 0.875rem;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
-}
-
-.chat-button:hover {
-  background-color: #2563eb;
-}
-
-.chat-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-/* -------------------- TEST INTERACTIVO -------------------- */
+/* Test interactivo */
 .test-question {
-  background-color: #ffffff;
+  background-color: #fffbe6;
   padding: 1rem;
-  border: 1px solid #d1d5db;
   border-radius: 8px;
-}
-
-.test-options {
+  border: 1px solid #ddd;
   margin-top: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
-/* -------------------- MENSAJES DE CARGA, ERROR Y ÉXITO -------------------- */
-.loading-msg {
-  font-size: 0.875rem;
-  color: #6b7280;
+.test-options label {
+  display: block;
+  margin-top: 0.4rem;
+}
+
+.test-options input[type="radio"] {
+  margin-right: 0.5rem;
+}
+
+/* Botón de envío de test */
+.submit-test {
   text-align: center;
+  margin-top: 1rem;
 }
 
+/* Feedback */
 .chat-error {
-  color: #dc2626;
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  background-color: #fee2e2;
-  border-radius: 6px;
-  margin: 0.5rem 1rem;
+  color: #c0392b;
+  font-weight: bold;
 }
 
 .chat-success {
-  color: #15803d;
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  background-color: #d1fae5;
-  border-radius: 6px;
-  margin: 0.5rem 1rem;
+  color: #27ae60;
+  font-weight: bold;
 }
 
-/* -------------------- SECCIÓN SUBIR DOCUMENTO -------------------- */
-.upload-section {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f9fafb;
+.loading-msg {
+  font-style: italic;
+  color: #555;
+}
+
+/* Botones reutilizables */
+.reveal-btn {
+  background-color: #111;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Fira Code', monospace;
+  transition: background-color 0.3s ease;
+  min-width: 120px;
+  max-width: 100%;
+  display: inline-block;
+  text-align: center;
+}
+
+.reveal-btn:hover {
+  background-color: #333;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.closing {
+  opacity: 0;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 2rem;
+  width: 90%;
+  max-width: 420px;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease-in-out;
+  text-align: center;
+}
+
+.modal-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-/* -------------------- ENVÍO DE TEST -------------------- */
-.submit-test {
-  padding: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background-color: #ffffff;
-  text-align: right;
+.modal-content h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
 }
 
-/* -------------------- ANIMACIÓN -------------------- */
+/* Botón de selección de archivo */
+.upload-button {
+  background-color: #111;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  border: 2px solid #111;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Fira Code', monospace;
+  display: inline-block;
+  text-align: center;
+  transition: all 0.3s ease;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.upload-button:hover {
+  background-color: #fff;
+  color: #111;
+}
+
+/* Animación de entrada */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(-15px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-/* -------------------- RESPONSIVE -------------------- */
-@media (max-width: 600px) {
-  .chat-container {
-    height: 90vh;
-    border-radius: 0;
-  }
-
-  .chat-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .chat-footer-buttons {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .chat-input,
-  .chat-button {
-    font-size: 0.75rem;
   }
 }
