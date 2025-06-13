@@ -275,11 +275,23 @@ export default function ChatIA() {
               <label htmlFor="fileUpload" className="upload-button">
                 Seleccionar archivo
               </label>
+
+              {/* Selector de asignatura dentro del modal */}
+              <select
+                className="subject-selector"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+              >
+                <option value="">Selecciona una asignatura</option>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+
               {file && (
                 <p style={{ fontSize: "0.85rem", color: "#333", marginTop: "0.5rem" }}>
                   📄 <strong>{file.name}</strong> · {formatFileSize(file.size)}
                 </p>
               )}
+
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
                 <button type="button" className="reveal-btn" onClick={triggerClose}>
                   Cancelar
