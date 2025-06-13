@@ -1,129 +1,184 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/Dashboard.css"; // Estilos específicos del dashboard
+import logo from "../images/LogoAulaGPT.png";
+import studentImg from "../images/Laptop_Home.png";
+import "../styles/Dashboard.css";
 
-/**
- * Componente principal del panel de estudiante.
- * Incluye: datos, chat, documentos y logout con modal de confirmación.
- */
 const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
 
   const [showCode, setShowCode] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const modalRef = useRef(null);
 
   const fullName =
-    user?.name === user?.surname
-      ? user?.name
-      : `${user?.name} ${user?.surname}`;
+    user?.name === user?.surname ? user?.name : `${user?.name} ${user?.surname}`;
 
-  // Navegaciones
   const goToChat = () => navigate("/chat");
   const goToDocuments = () => navigate("/documents");
 
-  // Mostrar/Ocultar código de invitación
-  const toggleInviteCode = () => {
-    if (showCode) {
-      setShowCode(false);
-    } else {
-      const confirm = window.confirm("¿Estás seguro de que quieres ver tu código de invitación?");
-      if (confirm) setShowCode(true);
-    }
+  const handleRevealClick = () => setShowCodeModal(true);
+  const confirmShowCode = () => {
+    setShowCode(true);
+    setShowCodeModal(false);
   };
 
-  // Mostrar modal visual para cerrar sesión
-  const handleLogoutClick = () => setShowLogoutModal(true);
-
-  // Confirmar logout y redirigir
   const confirmLogout = () => {
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
   };
+
+  const triggerClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setShowLogoutModal(false);
+      setShowCodeModal(false);
+    }, 200);
+  };
+
+  useEffect(() => {
+    const body = document.body;
+    const shouldLockScroll = showLogoutModal || showCodeModal;
+    body.style.overflow = shouldLockScroll ? "hidden" : "";
+    return () => {
+      body.style.overflow = "";
+    };
+  }, [showLogoutModal, showCodeModal]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        triggerClose();
+      }
+    };
+
+    if (showLogoutModal || showCodeModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showLogoutModal, showCodeModal]);
 
   return (
     <div className="home-page">
-      {/* Cabecera */}
+      {/* Encabezado */}
       <header className="header">
         <div className="header-left">
-          <h1 className="logo">AulaGPT</h1>
+          <div className="logo-with-icon">
+            <img src={logo} alt="Logo AulaGPT" className="logo-icon" />
+            <span className="logo-text">AulaGPT</span>
+          </div>
         </div>
         <div className="header-right">
-          <button
-            className="logout-btn"
-            title="Cerrar sesión"
-            onClick={handleLogoutClick}
-          >
+          <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>
             🔒 Cerrar sesión
           </button>
         </div>
       </header>
 
-      {/* Contenido principal */}
-      <main className="main-content">
-        <h2>Dashboard del Estudiante</h2>
+      {/* Hero */}
+      <section className="hero">
+        <h2 className="hero-title">Tu panel personalizado como estudiante</h2>
+        <img src={studentImg} alt="Estudiante con IA" className="hero-image" />
         <p className="subtext">
-          {user ? (
-            <>
-              Bienvenido, <strong>{fullName}</strong>. Este es tu dashboard personalizado.
-            </>
-          ) : (
-            "Cargando..."
-          )}
+          Consulta tus datos, documentos recientes y accede al chat educativo con IA.
         </p>
+      </section>
 
-        <section className="grid">
-          <div className="column">
-            <h3>Datos del Estudiante</h3>
-            <p><strong>Nombre:</strong> {fullName}</p>
-            <p><strong>ID:</strong> {user?.id || "..."}</p>
+      {/* Contenido principal */}
+      <main className="content-section">
+        {/* Tarjeta Datos */}
+        <div className="info-card">
+          <h3>Datos del estudiante</h3>
+          <p><strong>Nombre completo:</strong> {fullName}</p>
+          <p><strong>ID de usuario:</strong> {user?.id || "Cargando..."}</p>
 
-            {/* Código de invitación */}
-            {user?.invite_code && (
-              <div className="invite-code-box">
-                <h3>Código de Invitación</h3>
-                <div className="code-display">
-                  <span>
-                    {showCode ? user.invite_code : "******"}
-                  </span>
-                  <button
-                    onClick={toggleInviteCode}
-                    className="reveal-btn"
-                  >
-                    {showCode ? "Ocultar" : "Ver"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <h3>Documentos</h3>
-            <p>Próximamente: documentos conectados</p>
-            <button onClick={goToDocuments}>Ver documentos</button>
-
-            <h3>Acceso al Chat</h3>
-            <button onClick={goToChat}>Entrar al Chat</button>
+          <div className="button-group">
+            <span className="group-label">Configuración de cuenta</span>
+            <button className="group-btn" onClick={() => alert("Funcionalidad próximamente")}>
+              Cambiar contraseña
+            </button>
+            <button className="group-btn" onClick={() => alert("Funcionalidad próximamente")}>
+              Cambiar nombre de usuario
+            </button>
+            <button className="group-btn" onClick={() => alert("Funcionalidad próximamente")}>
+              Cambiar correo electrónico
+            </button>
           </div>
+        </div>
 
-          <div className="column">
-            <img
-              src="https://images.unsplash.com/photo-1527430253228-e93688616381?fit=crop&w=600&h=400"
-              alt="Estudiante frente al ordenador"
-              className="computer-img"
-            />
-            <h3>Resumen rápido</h3>
-            <p>Accede a resúmenes automáticos de tus documentos con IA.</p>
+        {/* Asistente IA */}
+        <div className="info-card">
+          <h3>Asistente IA</h3>
+          <p>Consulta a la IA tus dudas, pide explicaciones o resúmenes.</p>
+          <div className="button-group">
+            <button className="reveal-btn" onClick={goToChat}>Ir al Chat</button>
           </div>
-        </section>
+        </div>
+
+        {/* Documentos */}
+        <div className="info-card">
+          <h3>Últimos documentos</h3>
+          <p>Próximamente: aquí aparecerán tus últimos documentos subidos.</p>
+          <div className="button-group">
+            <button className="reveal-btn" onClick={goToDocuments}>Ver documentos</button>
+          </div>
+        </div>
+
+        {/* Código de invitación */}
+        {user?.invite_code && (
+          <div className="info-card">
+            <h3>Código de invitación</h3>
+            <p>Cuidado: este código es personal, no lo compartas con cualquiera.</p>
+            <div className="code-display">
+              <span>{showCode ? user.invite_code : "******"}</span>
+              {showCode ? (
+                <button onClick={() => setShowCode(false)} className="reveal-btn">
+                  Ocultar
+                </button>
+              ) : (
+                <button onClick={handleRevealClick} className="reveal-btn">
+                  Ver
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Modal de cierre de sesión */}
+      {/* Modal: Código de invitación */}
+      {showCodeModal && (
+        <div className={`modal-overlay show ${isClosing ? "closing" : ""}`}>
+          <div className="modal-content" ref={modalRef}>
+            <h3>¿Mostrar código de invitación?</h3>
+            <p>Este código es personal. ¿Estás seguro de que deseas verlo?</p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+              <button className="reveal-btn" onClick={triggerClose}>
+                Cancelar
+              </button>
+              <button className="reveal-btn" onClick={confirmShowCode}>
+                Mostrar código
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Cerrar sesión */}
       {showLogoutModal && (
-        <div className="modal-overlay show">
-          <div className="modal-content">
+        <div className={`modal-overlay show ${isClosing ? "closing" : ""}`}>
+          <div className="modal-content" ref={modalRef}>
             <h3>¿Cerrar sesión?</h3>
             <p>¿Estás seguro de que deseas cerrar sesión?</p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
-              <button className="reveal-btn" onClick={() => setShowLogoutModal(false)}>
+              <button className="reveal-btn" onClick={triggerClose}>
                 Cancelar
               </button>
               <button className="reveal-btn" onClick={confirmLogout}>
@@ -133,13 +188,6 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="footer">
-        <p>
-          <a href="#">Política de privacidad</a> • <a href="#">Términos de uso</a>
-        </p>
-      </footer>
     </div>
   );
 };
