@@ -5,12 +5,10 @@ import "../styles/Dashboard.css";
 const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
-
   const [showCode, setShowCode] = useState(false);
 
-  const fullName = user?.name === user?.surname
-    ? user?.name
-    : `${user?.name} ${user?.surname}`;
+  const fullName =
+    user?.name === user?.surname ? user?.name : `${user?.name} ${user?.surname}`;
 
   const goToChat = () => navigate("/chat");
   const goToDocuments = () => navigate("/documents");
@@ -50,9 +48,17 @@ const StudentDashboard = () => {
             <div className="invite-code-box">
               <h3>Código de Invitación</h3>
               <div className="code-display">
-                <span>{showCode ? user?.invite_code || "No disponible" : "******"}</span>
+                <span>
+                  {showCode
+                    ? user?.invite_code || "No disponible"
+                    : "******"}
+                </span>
                 {!showCode && (
-                  <button onClick={handleRevealCode} className="reveal-btn">
+                  <button
+                    onClick={handleRevealCode}
+                    className="reveal-btn"
+                    aria-label="Mostrar código de invitación"
+                  >
                     Ver
                   </button>
                 )}
@@ -73,7 +79,6 @@ const StudentDashboard = () => {
               alt="Estudiante retro frente a ordenador"
               className="computer-img"
             />
-
             <h3>Resumen rápido</h3>
             <p>Accede a resúmenes automáticos de tus documentos con IA.</p>
           </div>

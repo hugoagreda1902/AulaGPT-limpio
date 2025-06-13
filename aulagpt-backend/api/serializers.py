@@ -63,7 +63,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'name', 'surname', 'role')
+        fields = ('id', 'username', 'email', 'name', 'surname', 'role', 'invite_code')
         read_only_fields = ('id', 'invite_code')
 
 class DocumentsSerializer(serializers.ModelSerializer):
