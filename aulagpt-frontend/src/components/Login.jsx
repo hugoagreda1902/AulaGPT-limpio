@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/AuthModal.css";
+
+// Font Awesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -18,25 +20,18 @@ function Login() {
     try {
       const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
-      console.log("Respuesta del login:", data); // 🔍 Verifica qué devuelve
 
       if (response.ok) {
-        const user = data.user || data; // usa .user si viene así o todo el objeto si viene plano
-
-        if (!user.role) {
-          setErrorMsg("No se pudo identificar el rol del usuario.");
-          return;
-        }
-
+        const user = data.user;
         localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("accessToken", data.token);
 
+        // ✅ Redirección según rol
         if (user.role === "teacher") {
           navigate("/dashboard/teacher");
         } else if (user.role === "student") {
