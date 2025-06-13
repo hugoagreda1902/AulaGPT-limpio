@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Dashboard.css";
 
@@ -6,12 +6,19 @@ const StudentDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
 
+  const [showCode, setShowCode] = useState(false);
+
   const fullName = user?.name === user?.surname
     ? user?.name
     : `${user?.name} ${user?.surname}`;
 
   const goToChat = () => navigate("/chat");
-  const goToDocuments = () => navigate("/documents"); // NUEVO
+  const goToDocuments = () => navigate("/documents");
+
+  const handleRevealCode = () => {
+    const confirm = window.confirm("¿Estás seguro de que quieres ver tu código de invitación?");
+    if (confirm) setShowCode(true);
+  };
 
   return (
     <div className="home-page">
@@ -39,6 +46,18 @@ const StudentDashboard = () => {
             <h3>Datos del Estudiante</h3>
             <p><strong>Nombre:</strong> {fullName}</p>
             <p><strong>ID:</strong> {user ? user.id : "..."}</p>
+
+            <div className="invite-code-box">
+              <h3>Código de Invitación</h3>
+              <div className="code-display">
+                <span>{showCode ? user?.invite_code || "No disponible" : "******"}</span>
+                {!showCode && (
+                  <button onClick={handleRevealCode} className="reveal-btn">
+                    Ver
+                  </button>
+                )}
+              </div>
+            </div>
 
             <h3>Documentos</h3>
             <p>Próximamente: documentos conectados</p>
