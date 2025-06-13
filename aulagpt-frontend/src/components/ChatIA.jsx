@@ -100,10 +100,12 @@ export default function ChatIA() {
     }
 
     try {
-      await uploadDocument(file, subject);
-      setUploadMsg("✅ Documento subido correctamente.");
+      const result = await uploadDocument(file, subject);
+      const fileName = result?.file_name || file.name;
+      setUploadMsg(`✅ Subido correctamente: ${fileName}`);
       setFile(null);
     } catch {
+      console.error("Error al subir documento:", error);
       setUploadErr("❌ Error al subir el documento.");
     }
   };
