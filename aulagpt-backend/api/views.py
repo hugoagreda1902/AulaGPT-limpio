@@ -94,10 +94,15 @@ class UserViewSet(viewsets.ModelViewSet):
             user = User.objects.get(username__iexact=username)
         except User.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-        if user.check_password(password):
-            return Response({"message": "Login exitoso", "id": user.id})
-        return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        if user.check_password(password):
+            serializer = UserSerializer(user)  # ← Serializa todo el usuario
+            return Response({
+                "message": "Login exitoso",
+                "user": serializer.data         # ← Devuelve todos los campos, incluido invite_code
+            })
+
+        return Response({"error": "Contraseña incorrecta"}, status=status.HTTP_401_UNAUTHORIZED)
 
 class DocumentsViewSet(viewsets.ModelViewSet):
     queryset = Documents.objects.all()

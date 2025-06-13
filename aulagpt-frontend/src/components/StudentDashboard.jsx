@@ -43,27 +43,27 @@ const StudentDashboard = () => {
           <div className="column">
             <h3>Datos del Estudiante</h3>
             <p><strong>Nombre:</strong> {fullName}</p>
-            <p><strong>ID:</strong> {user ? user.id : "..."}</p>
+            <p><strong>ID:</strong> {user?.id || "..."}</p>
 
-            <div className="invite-code-box">
-              <h3>Código de Invitación</h3>
-              <div className="code-display">
-                <span>
-                  {showCode
-                    ? user?.invite_code || "No disponible"
-                    : "******"}
-                </span>
-                {!showCode && (
-                  <button
-                    onClick={handleRevealCode}
-                    className="reveal-btn"
-                    aria-label="Mostrar código de invitación"
-                  >
-                    Ver
-                  </button>
-                )}
+            {user?.invite_code && (
+              <div className="invite-code-box">
+                <h3>Código de Invitación</h3>
+                <div className="code-display">
+                  <span>
+                    {showCode ? user.invite_code : "******"}
+                  </span>
+                  {!showCode && (
+                    <button
+                      onClick={handleRevealCode}
+                      className="reveal-btn"
+                      aria-label="Mostrar código de invitación"
+                    >
+                      Ver
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <h3>Documentos</h3>
             <p>Próximamente: documentos conectados</p>
@@ -76,7 +76,7 @@ const StudentDashboard = () => {
           <div className="column">
             <img
               src="https://images.unsplash.com/photo-1527430253228-e93688616381?fit=crop&w=600&h=400"
-              alt="Estudiante retro frente a ordenador"
+              alt="Estudiante frente al ordenador"
               className="computer-img"
             />
             <h3>Resumen rápido</h3>
