@@ -130,6 +130,10 @@ button:hover {
   z-index: 9999;
 }
 
+.modal-overlay.show {
+  display: flex;
+}
+
 .modal-content {
   position: relative;
   background-color: #fff;
