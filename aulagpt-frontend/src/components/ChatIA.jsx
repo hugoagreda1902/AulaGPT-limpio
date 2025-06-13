@@ -104,8 +104,8 @@ export default function ChatIA() {
       const fileName = result?.file_name || file.name;
       setUploadMsg(`✅ Subido correctamente: ${fileName}`);
       setFile(null);
-    } catch {
-      console.error("Error al subir documento:", error);
+    } catch (e) {
+      console.error("Error al subir documento:", e);
       setUploadErr("❌ Error al subir el documento.");
     }
   };

@@ -10,8 +10,8 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [message, setMessage] = useState(""); // Usado tanto para éxito como error
-  const [messageType, setMessageType] = useState(""); // "error" o "success"
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -30,15 +30,15 @@ function Login() {
 
       if (response.ok) {
         const user = data.user;
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("token", data.token); // ✅ coincidirá con axiosConfig.js
 
-        // ✅ Mostrar éxito visualmente
+        // ✅ Aquí guardamos correctamente el token con la clave que axiosConfig espera
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(user));
+
         setMessage("Inicio de sesión exitoso ✓");
         setMessageType("success");
 
         setTimeout(() => {
-          // Redirección según rol
           if (user.role === "teacher") {
             navigate("/dashboard/teacher");
           } else if (user.role === "student") {
@@ -46,7 +46,7 @@ function Login() {
           } else {
             navigate("/");
           }
-        }, 1500); // Esperamos 1.5s para mostrar el mensaje
+        }, 1500);
       } else {
         setMessage(data.error || "Usuario o contraseña incorrectos.");
         setMessageType("error");
