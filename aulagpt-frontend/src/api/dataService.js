@@ -25,9 +25,8 @@ export const uploadDocument = (file, subject) => {
   form.append('file', file);
   form.append('subject', subject);
 
-  return API.post('/documents/', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }).then(res => res.data);
+  return API.post('/documents/', form)
+    .then(res => res.data);
 };
 
 // Envío de respuestas de test para métricas
