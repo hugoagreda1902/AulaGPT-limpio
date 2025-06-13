@@ -5,7 +5,7 @@ import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
 import "../styles/ChatIA.css";
 
 const SUBJECTS = [
-  "matematicas", "lengua", "ingles", "historia",
+  "Matemáticas", "lengua", "ingles", "historia",
   "ciencias", "fisica", "quimica"
 ];
 
