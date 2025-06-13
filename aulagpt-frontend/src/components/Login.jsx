@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/AuthModal.css";
-
-// Font Awesome imports
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -27,9 +25,15 @@ function Login() {
       });
 
       const data = await response.json();
+      console.log("Respuesta del login:", data); // 🔍 Verifica qué devuelve
 
       if (response.ok) {
-        const user = data.user;
+        const user = data.user || data; // usa .user si viene así o todo el objeto si viene plano
+
+        if (!user.role) {
+          setErrorMsg("No se pudo identificar el rol del usuario.");
+          return;
+        }
 
         localStorage.setItem("user", JSON.stringify(user));
 

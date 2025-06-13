@@ -29,7 +29,6 @@ const Home = () => {
           ></div>
         </div>
       </header>
-
       <main className="main-content">
         <h2>Resúmenes inteligentes con IA</h2>
         <p className="subtext">
