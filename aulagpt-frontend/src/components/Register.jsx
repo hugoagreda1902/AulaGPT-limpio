@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "../styles/AuthModal.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash, faCheck, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -21,15 +23,13 @@ function Register() {
     "mail.com", "msn.com", "aol.com", "zoho.com", "yandex.com", "student.com"
   ];
 
-  const validatePassword = (password) => {
-    return {
-      length: password.length >= 6,
-      upper: /[A-Z]/.test(password),
-      lower: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
-      special: /[\W_]/.test(password)
-    };
-  };
+  const validatePassword = (password) => ({
+    length: password.length >= 6,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[\W_]/.test(password),
+  });
 
   const passwordChecks = validatePassword(formData.password);
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
@@ -90,8 +90,6 @@ function Register() {
     }
   };
 
-  const symbol = (valid) => (valid ? "●" : "✖");
-
   return (
     <>
       <h2>Registro de usuario</h2>
@@ -146,17 +144,35 @@ function Register() {
             onClick={() => setShowPassword(!showPassword)}
             className="toggle-password"
           >
-            {showPassword ? "🙈" : "👁️"}
+            <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
           </button>
         </div>
 
-        <ul className="password-checklist simple">
-          <li>{symbol(passwordChecks.length)} Mínimo 6 caracteres</li>
-          <li>{symbol(passwordChecks.upper)} Una letra mayúscula</li>
-          <li>{symbol(passwordChecks.lower)} Una letra minúscula</li>
-          <li>{symbol(passwordChecks.number)} Un número</li>
-          <li>{symbol(passwordChecks.special)} Un carácter especial</li>
-        </ul>
+        {/* Solo mostramos los requisitos si se empieza a escribir */}
+        {formData.password && (
+          <ul className="password-checklist">
+            <li className={passwordChecks.length ? "valid" : "invalid"}>
+              <FontAwesomeIcon icon={passwordChecks.length ? faCheck : faTimes} />
+              Mínimo 6 caracteres
+            </li>
+            <li className={passwordChecks.upper ? "valid" : "invalid"}>
+              <FontAwesomeIcon icon={passwordChecks.upper ? faCheck : faTimes} />
+              Una letra mayúscula
+            </li>
+            <li className={passwordChecks.lower ? "valid" : "invalid"}>
+              <FontAwesomeIcon icon={passwordChecks.lower ? faCheck : faTimes} />
+              Una letra minúscula
+            </li>
+            <li className={passwordChecks.number ? "valid" : "invalid"}>
+              <FontAwesomeIcon icon={passwordChecks.number ? faCheck : faTimes} />
+              Un número
+            </li>
+            <li className={passwordChecks.special ? "valid" : "invalid"}>
+              <FontAwesomeIcon icon={passwordChecks.special ? faCheck : faTimes} />
+              Un carácter especial
+            </li>
+          </ul>
+        )}
 
         <select name="role" value={formData.role} onChange={handleChange} required>
           <option value="student">Alumno</option>

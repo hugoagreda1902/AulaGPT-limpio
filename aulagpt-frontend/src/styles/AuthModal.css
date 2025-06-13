@@ -13,11 +13,17 @@
   pointer-events: none;
   transition: opacity 0.3s ease;
   z-index: 1000;
+  overflow-y: hidden;
 }
 
 .modal-overlay.show {
   opacity: 1;
   pointer-events: all;
+}
+
+.modal-overlay.closing {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .modal-content {
@@ -30,6 +36,15 @@
   position: relative;
   font-family: 'Fira Code', 'Courier New', monospace;
   animation: fadeIn 0.3s ease-out;
+  transform: scale(1);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content.fade-out {
+  transform: scale(0.95);
+  opacity: 0;
 }
 
 @keyframes fadeIn {
@@ -69,12 +84,14 @@
   cursor: pointer;
   color: #888;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .tabs button.active {
-  color: #000;
-  border-color: #000;
+  background-color: #111;
+  color: #fff;
+  border-color: #111;
+  border-radius: 5px;
 }
 
 .auth-form {
@@ -90,6 +107,7 @@
   border-radius: 5px;
   font-family: inherit;
   font-size: 1rem;
+  height: 2.5rem;
 }
 
 .auth-form button {
@@ -101,6 +119,18 @@
   cursor: pointer;
   font-weight: bold;
   font-size: 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.auth-form button:hover:enabled {
+  background-color: #333;
+}
+
+.auth-form button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .success-msg {
@@ -108,6 +138,7 @@
   font-size: 0.9rem;
   margin-top: 1rem;
   text-align: center;
+  animation: popFade 0.4s ease;
 }
 
 .error-msg {
@@ -115,35 +146,65 @@
   font-size: 0.9rem;
   margin-top: 1rem;
   text-align: center;
+  animation: popFade 0.4s ease;
 }
 
-/* 👁️ Mostrar/Ocultar contraseña */
+@keyframes popFade {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mostrar/Ocultar contraseña */
 .password-wrapper {
   position: relative;
 }
 
 .password-input {
   padding-right: 2.5rem;
+  height: 2.5rem;
 }
 
 .toggle-password {
   position: absolute;
   top: 50%;
-  right: 0.5rem;
+  right: 0rem;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.2rem;
+  width: 2.2rem;
+  font-size: 2rem; /* TAMAÑO CONSTANTE para ambos iconos */
+  color: #555;
 }
 
-/* ✔️ Requisitos de contraseña */
+/* Requisitos de contraseña */
 .password-checklist {
   list-style: none;
   padding: 0;
   font-size: 0.85rem;
   color: #555;
   margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.password-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .password-checklist li.valid {

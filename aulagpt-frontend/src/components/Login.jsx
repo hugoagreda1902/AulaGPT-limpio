@@ -10,12 +10,14 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [message, setMessage] = useState(""); // Usado tanto para éxito como error
+  const [messageType, setMessageType] = useState(""); // "error" o "success"
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg("");
+    setMessage("");
+    setMessageType("");
 
     try {
       const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
@@ -31,27 +33,41 @@ function Login() {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("accessToken", data.token);
 
-        // ✅ Redirección según rol
-        if (user.role === "teacher") {
-          navigate("/dashboard/teacher");
-        } else if (user.role === "student") {
-          navigate("/dashboard/student");
-        } else {
-          navigate("/");
-        }
+        // ✅ Mostrar éxito visualmente
+        setMessage("Inicio de sesión exitoso ✓");
+        setMessageType("success");
+
+        setTimeout(() => {
+          // Redirección según rol
+          if (user.role === "teacher") {
+            navigate("/dashboard/teacher");
+          } else if (user.role === "student") {
+            navigate("/dashboard/student");
+          } else {
+            navigate("/");
+          }
+        }, 1500); // Esperamos 1.5s para mostrar el mensaje
       } else {
-        setErrorMsg(data.error || "Error al iniciar sesión");
+        setMessage(data.error || "Usuario o contraseña incorrectos.");
+        setMessageType("error");
       }
     } catch (err) {
       console.error("Error en login:", err);
-      setErrorMsg("Error de conexión con el servidor");
+      setMessage("Error de conexión con el servidor");
+      setMessageType("error");
     }
   };
 
   return (
     <>
       <h2>Iniciar sesión</h2>
-      {errorMsg && <p className="error-msg">{errorMsg}</p>}
+
+      {message && (
+        <p className={messageType === "success" ? "success-msg" : "error-msg"}>
+          {message}
+        </p>
+      )}
+
       <form className="auth-form" onSubmit={handleSubmit}>
         <input
           type="text"
