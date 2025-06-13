@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import "../styles/ChatIA.css";
 import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
 

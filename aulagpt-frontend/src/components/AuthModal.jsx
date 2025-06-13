@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import Login from "./Login";
 import Register from "./Register";
 import "../styles/AuthModal.css";

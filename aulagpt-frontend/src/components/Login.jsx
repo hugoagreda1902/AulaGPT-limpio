@@ -18,7 +18,7 @@ function Login() {
     setErrorMsg("");
 
     try {
-      const response = await fetch("https://aulagpt.onrender.com/api/token/", {
+      const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -29,24 +29,19 @@ function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem("accessToken", data.access);
-        localStorage.setItem("refreshToken", data.refresh);
-        localStorage.setItem("user", JSON.stringify({
-          id: data.id,
-          name: data.name,
-          surname: data.surname,
-          role: data.role
-        }));
+        const user = data.user;
 
-        if (data.role === "teacher") {
+        localStorage.setItem("user", JSON.stringify(user));
+
+        if (user.role === "teacher") {
           navigate("/dashboard/teacher");
-        } else if (data.role === "student") {
+        } else if (user.role === "student") {
           navigate("/dashboard/student");
         } else {
           navigate("/");
         }
       } else {
-        setErrorMsg(data.detail || "Error al iniciar sesión");
+        setErrorMsg(data.error || "Error al iniciar sesión");
       }
     } catch (err) {
       console.error("Error en login:", err);
