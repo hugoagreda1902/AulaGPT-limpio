@@ -217,3 +217,19 @@ button:hover {
     transform: translateY(0);
   }
 }
+
+.logout-btn {
+  background-color: #111;
+  color: #fff;
+  font-size: 0.9rem;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-btn:hover {
+  background-color: #333;
+}
