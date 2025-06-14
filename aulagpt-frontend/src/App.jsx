@@ -5,7 +5,7 @@ import Home from "./components/Home";
 import ChatIA from "./components/ChatIA";
 import StudentDashboard from "./components/StudentDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
-import StudentDocuments from "./components/StudentDocuments"; // ¡Aquí estás bien!
+import StudentDocuments from "./components/StudentDocuments"; 
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");

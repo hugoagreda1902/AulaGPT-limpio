@@ -27,7 +27,6 @@ function Login() {
       });
 
       const data = await response.json();
-
       if (response.ok) {
         const user = data.user;
 
@@ -40,7 +39,7 @@ function Login() {
 
         console.log("Usuario recibido:", user);
         console.log("Rol:", user.role);
-        
+
         setTimeout(() => {
           if (user.role === "teacher") {
             navigate("/dashboard/teacher");
