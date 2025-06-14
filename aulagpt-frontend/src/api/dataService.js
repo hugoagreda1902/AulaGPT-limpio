@@ -27,15 +27,13 @@ export const uploadDocument = (file, subject) => {
 
   const token = localStorage.getItem("token");
 
-  // Verifica que hay token antes de hacer la petición
   if (!token) {
-    return Promise.reject(new Error("No hay token de autenticación."));
+    return Promise.reject(new Error("No hay token en localStorage"));
   }
 
   return API.post('/documents/', form, {
     headers: {
-      Authorization: `Bearer ${token}`,
-      // NO pongas 'Content-Type', axios lo maneja automáticamente con FormData
+      Authorization: `Bearer ${token}`
     }
   }).then(res => res.data);
 };
