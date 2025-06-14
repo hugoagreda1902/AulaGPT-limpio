@@ -14,7 +14,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const navigate = useNavigate(); // se usará luego
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,16 +25,27 @@ function Login() {
       const data = await loginUser({ username, password });
       console.log("Login OK. Respuesta:", data);
 
-      // Guarda solo el token de acceso
+      // Guarda el token de acceso
       localStorage.setItem("token", data.access);
 
-      // Guarda el resto del usuario si quieres
+      // Guarda el usuario completo por si lo necesitas más tarde
       localStorage.setItem("user", JSON.stringify(data));
 
       setMessage("Inicio de sesión exitoso ✓");
       setMessageType("success");
 
-      // Redirección la haremos después
+      // Redirección según el rol
+      const role = data.role?.toLowerCase?.();
+
+      setTimeout(() => {
+        if (role === "teacher") {
+          navigate("/dashboard/teacher");
+        } else if (role === "student") {
+          navigate("/dashboard/student");
+        } else {
+          navigate("/");
+        }
+      }, 1500);
     } catch (err) {
       console.error("Error en login:", err);
       setMessage("Usuario o contraseña incorrectos.");
