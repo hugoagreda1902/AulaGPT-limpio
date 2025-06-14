@@ -38,6 +38,9 @@ function Login() {
         setMessage("Inicio de sesión exitoso ✓");
         setMessageType("success");
 
+        console.log("Usuario recibido:", user);
+        console.log("Rol:", user.role);
+        
         setTimeout(() => {
           if (user.role === "teacher") {
             navigate("/dashboard/teacher");
