@@ -20,7 +20,7 @@ function Login() {
     setMessageType("");
 
     try {
-      const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
+      const response = await fetch("https://aulagpt.onrender.com/api/token/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -32,14 +32,11 @@ function Login() {
         const user = data.user;
 
         // ✅ Aquí guardamos correctamente el token con la clave que axiosConfig espera
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.access);
         localStorage.setItem("user", JSON.stringify(user));
 
         setMessage("Inicio de sesión exitoso ✓");
         setMessageType("success");
-
-        console.log("Usuario recibido:", user);
-        console.log("Rol:", user.role);
 
         setTimeout(() => {
           if (user.role === "teacher") {
