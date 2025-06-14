@@ -25,14 +25,21 @@ export const uploadDocument = (file, subject) => {
   form.append('file', file);
   form.append('subject', subject);
 
-  const token = localStorage.getItem("token"); // O desde contexto si usas AuthContext
+  const token = localStorage.getItem("token");
+
+  // Verifica que hay token antes de hacer la petición
+  if (!token) {
+    return Promise.reject(new Error("No hay token de autenticación."));
+  }
 
   return API.post('/documents/', form, {
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      // NO pongas 'Content-Type', axios lo maneja automáticamente con FormData
     }
   }).then(res => res.data);
 };
+
 
 // Envío de respuestas de test para métricas
 export const submitTest = (subject, answers) =>

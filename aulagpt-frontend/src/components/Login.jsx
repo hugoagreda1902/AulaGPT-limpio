@@ -31,8 +31,7 @@ function Login() {
       if (response.ok) {
         const user = data.user;
 
-        // ✅ Aquí guardamos correctamente el token con la clave que axiosConfig espera
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.token.access); // <--- Usa el token de acceso
         localStorage.setItem("user", JSON.stringify(user));
 
         setMessage("Inicio de sesión exitoso ✓");
