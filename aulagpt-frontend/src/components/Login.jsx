@@ -27,6 +27,7 @@ function Login() {
       });
 
       const data = await response.json();
+      console.log("Respuesta del login:", data);
       if (response.ok) {
         const user = data.user;
 
