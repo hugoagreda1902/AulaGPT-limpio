@@ -20,7 +20,7 @@ function Login() {
     setMessageType("");
 
     try {
-      const response = await fetch("https://aulagpt.onrender.com/api/", {
+      const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
