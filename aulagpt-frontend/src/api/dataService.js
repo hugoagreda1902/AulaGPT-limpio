@@ -25,7 +25,13 @@ export const uploadDocument = (file, subject) => {
   form.append('file', file);
   form.append('subject', subject);
 
-  return API.post('/documents/', form).then(res => res.data);
+  const token = localStorage.getItem("token"); // O desde contexto si usas AuthContext
+
+  return API.post('/documents/', form, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }).then(res => res.data);
 };
 
 // Envío de respuestas de test para métricas
