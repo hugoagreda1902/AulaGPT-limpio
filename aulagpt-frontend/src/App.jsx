@@ -8,7 +8,7 @@ import TeacherDashboard from "./components/TeacherDashboard";
 import StudentDocuments from "./components/StudentDocuments"; // ¡Aquí estás bien!
 
 function PrivateRoute({ children }) {
-  const token = localStorage.getItem("accessToken");
+  const token = localStorage.getItem("token");
   return token ? children : <Navigate to="/" />;
 }
 
