@@ -1,25 +1,24 @@
+// src/api/dataService.js
 import API from './axiosConfig';
 
 // Registro de usuario
 export const registerUser = (user) =>
   API.post('/users/register/', user).then(res => res.data);
 
-// Login: simplejwt
-export const loginUser = (creds) =>
-  API.post('/token/', creds).then(res => res.data);
+// 🔐 Login (token JWT desde SimpleJWT)
+export const loginUser = (credentials) =>
+  API.post('/token/', credentials).then(res => res.data);
 
-// Chat / Resumen / Test
+// 🧠 Pregunta a la IA
 export const askQuestion = (question, subject, action = 'answer') =>
   API.post('/ask/', { question, subject, action })
     .then(res => res.data)
     .catch(err => {
-      if (err.response && err.response.data) {
-        return err.response.data;
-      }
+      if (err.response?.data) return err.response.data;
       throw err;
     });
 
-// Subida de documento
+// 📤 Subida de documento
 export const uploadDocument = (file, subject) => {
   const form = new FormData();
   form.append('file', file);
@@ -28,24 +27,25 @@ export const uploadDocument = (file, subject) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    return Promise.reject(new Error("No hay token en localStorage"));
+    return Promise.reject(new Error("❌ No hay token en localStorage"));
   }
 
   return API.post('/documents/', form, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
-  }).then(res => res.data);
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(res => res.data)
+    .catch(err => {
+      console.error("Error al subir documento:", err);
+      throw err;
+    });
 };
 
-
-// Envío de respuestas de test para métricas
+// 🧪 Envío de respuestas de test
 export const submitTest = (subject, answers) =>
   API.post('/tests/submit/', { subject, answers })
     .then(res => res.data)
     .catch(err => {
-      if (err.response && err.response.data) {
-        return err.response.data;
-      }
+      if (err.response?.data) return err.response.data;
       throw err;
     });

@@ -1,5 +1,7 @@
+// src/components/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { loginUser } from "../api/dataService";
 import "../styles/AuthModal.css";
 
 // Font Awesome
@@ -12,7 +14,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // se usará luego
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,40 +22,22 @@ function Login() {
     setMessageType("");
 
     try {
-      const response = await fetch("https://aulagpt.onrender.com/api/users/login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+      const data = await loginUser({ username, password });
+      console.log("Login OK. Respuesta:", data);
 
-      const data = await response.json();
-      console.log("Respuesta del login:", data);
-      if (response.ok) {
-        const user = data.user;
+      // Guarda solo el token de acceso
+      localStorage.setItem("token", data.access);
 
-        // ✅ Aquí guardamos correctamente el token con la clave que axiosConfig espera
-        localStorage.setItem("token", data.access);
-        localStorage.setItem("user", JSON.stringify(user));
+      // Guarda el resto del usuario si quieres
+      localStorage.setItem("user", JSON.stringify(data));
 
-        setMessage("Inicio de sesión exitoso ✓");
-        setMessageType("success");
+      setMessage("Inicio de sesión exitoso ✓");
+      setMessageType("success");
 
-        setTimeout(() => {
-          if (user.role === "teacher") {
-            navigate("/dashboard/teacher");
-          } else if (user.role === "student") {
-            navigate("/dashboard/student");
-          } else {
-            navigate("/");
-          }
-        }, 1500);
-      } else {
-        setMessage(data.error || "Usuario o contraseña incorrectos.");
-        setMessageType("error");
-      }
+      // Redirección la haremos después
     } catch (err) {
       console.error("Error en login:", err);
-      setMessage("Error de conexión con el servidor");
+      setMessage("Usuario o contraseña incorrectos.");
       setMessageType("error");
     }
   };
