@@ -287,7 +287,12 @@ class AskAPIView(APIView):
             prompt = (
                 f"Hola {name}, soy AulaGPT, un generador de tests para la asignatura {subject}.\n"
                 f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
-                "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra."
+                "Genera exactamente 5 preguntas tipo test de opción múltiple en formato JSON válido. "
+                "El JSON debe ser una lista de objetos, y cada objeto debe tener exactamente estas claves:\n"
+                "- question: el enunciado de la pregunta (string)\n"
+                "- options: un array de 4 opciones (strings)\n"
+                "- correct: una de las opciones anteriores que sea la correcta (string)\n\n"
+                "No añadas explicaciones, introducciones ni texto adicional fuera del JSON."
             )
         elif action == 'summary':
             prompt = (
