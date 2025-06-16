@@ -5,8 +5,8 @@ import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
 import "../styles/ChatIA.css";
 
 const SUBJECTS = [
-  "Matemáticas", "lengua", "ingles", "historia",
-  "ciencias", "fisica", "quimica"
+  "Matemáticas", "Lengua", "Ingles", "Historia",
+  "Ciencias", "Física", "Química"
 ];
 
 export default function ChatIA() {
@@ -183,7 +183,7 @@ export default function ChatIA() {
                 key={i}
                 className={`chat-bubble ${msg.autor === "usuario" ? "user-msg" : "assistant-msg"}`}
               >
-                <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString()}</p>
+                <p className="timestamp">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 {!isTestIntro && <p>{msg.texto}</p>}
               </div>
             );
