@@ -264,38 +264,45 @@ class AskAPIView(APIView):
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
 
+        user = request.user
+
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = request.user
-        name = getattr(user, 'first_name', '') or user.username
+        # Obtener nombre del usuario
+        name = getattr(user, 'name', user.username)
 
+        # Obtener documentos subidos por el usuario para la asignatura
+        documentos = Documents.objects.filter(owner=user, subject=subject).order_by('-upload_date')
+        if not documentos.exists():
+            return Response({"error": "No se encontraron documentos para esa asignatura"}, status=400)
+
+        # Obtener texto extraído
         context = extraer_texto_de_documentos_usuario(subject, user.id)
-        documentos = Documents.objects.filter(user=user, subject=subject).values_list('file_name', flat=True)
-        lista_docs = ", ".join(documentos) if documentos else "ningún documento disponible"
-
         if not context.strip():
-            return Response({"error": "No se pudo extraer texto de los documentos"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
 
-        contexto_final = f"El usuario ha subido los siguientes documentos: {lista_docs}\n\n{context[:8000]}"
+        # Añadir nombres de documentos al contexto
+        nombres_docs = [doc.file_name for doc in documentos]
+        nombres_str = ", ".join(nombres_docs)
+        contexto_final = f"(Documentos subidos: {nombres_str})\n\n{context[:8000]}"
 
         if action == 'test':
             prompt = (
-                f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
+                f"Hola {name}, soy AulaGPT, un generador de tests para la asignatura {subject}.\n"
                 f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
                 "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra."
             )
         elif action == 'summary':
             prompt = (
-                f"Eres AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
+                f"Hola {name}, soy AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
                 f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
                 "Devuélveme un resumen en máximo 5 viñetas."
             )
         else:
             prompt = (
-                f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
+                f"Hola {name}, soy AulaGPT, un asistente educativo para la asignatura {subject}.\n"
                 f"Tienes este contenido disponible:\n\n{contexto_final}\n\n"
-                f"Si el usuario pregunta por los documentos, dile: 'Hola {name}, has subido los siguientes documentos: {lista_docs}'.\n"
                 "Usa ese contenido solo si es relevante para responder la pregunta. "
                 "Si la pregunta no está relacionada con el material, responde de forma natural.\n\n"
                 "Responde de forma clara y concisa."
@@ -312,34 +319,32 @@ class AskAPIView(APIView):
             )
             raw = resp.choices[0].message.content.strip()
         except Exception as e:
-            return Response({"error": f"Fallo en OpenAI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
-                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
             try:
                 items = json.loads(match.group(0))
             except Exception as e:
-                return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": f"Error parseando JSON: {e}"}, status=500)
 
-            document = Documents.objects.filter(user=user, subject=subject).last()
-            if not document:
-                return Response({"error": "No se encontró ningún documento para esta asignatura."}, status=status.HTTP_400_BAD_REQUEST)
-
+            documento = documentos.first()
             test = Tests.objects.create(
                 creator=user,
-                document=document,
+                document=documento,
                 test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
+
             for it in items:
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [None, None, None, None])[0],
-                    option_b=it.get('options', [None, None, None, None])[1],
-                    option_c=it.get('options', [None, None, None, None])[2],
-                    option_d=it.get('options', [None, None, None, None])[3],
+                    option_a=it.get('options', [None])[0],
+                    option_b=it.get('options', [None])[1],
+                    option_c=it.get('options', [None])[2],
+                    option_d=it.get('options', [None])[3],
                     correct_option=it.get('correct')
                 )
 
@@ -349,18 +354,21 @@ class AskAPIView(APIView):
                 question=question,
                 response=raw
             )
+
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
 
+        # Si no es test, guardar en historial y devolver respuesta normal
         ChatHistory.objects.create(
             user=user,
             subject=subject,
             question=question,
             response=raw
         )
+
         return Response({
             "question": question,
             "answer": raw
