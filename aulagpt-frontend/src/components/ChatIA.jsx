@@ -115,30 +115,30 @@ export default function ChatIA() {
   };
 
   const handleSubmitTest = async () => {
-  if (!Array.isArray(testQuestions) || testQuestions.length === 0) {
-    setError("No hay preguntas para enviar.");
-    return;
-  }
+    if (!Array.isArray(testQuestions) || testQuestions.length === 0) {
+      setError("No hay preguntas para enviar.");
+      return;
+    }
 
-  try {
-    const answers = testQuestions.map((q, i) => ({
-      question: q?.question || "", // Asegura que nunca sea undefined
-      selected: selectedAnswers[i] || "", // Igual aquí
-    }));
+    try {
+      const answers = testQuestions.map((q, i) => ({
+        question: q?.question || "",
+        selected: selectedAnswers[i] || ""
+      }));
 
-    await submitTest(subject, answers);
+      await submitTest(subject, answers);
 
-    setHistory(prev => [
-      ...prev,
-      { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }
-    ]);
-    setTestQuestions([]);
-    setSelectedAnswers({});
-  } catch (e) {
-    console.error("❌ Error al enviar test:", e);
-    setError("Error al enviar el test.");
-  }
-};
+      setHistory(prev => [
+        ...prev,
+        { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }
+      ]);
+      setTestQuestions([]);
+      setSelectedAnswers({});
+    } catch (e) {
+      console.error("❌ Error al enviar test:", e);
+      setError("Error al enviar el test.");
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -165,7 +165,6 @@ export default function ChatIA() {
   return (
     <div className="chat-page">
       <div className="chat-container">
-        {/* Header */}
         <div className="chat-header">
           <div className="chat-logo-group">
             <img src={logo} alt="Logo AulaGPT" className="logo-icon" />
@@ -185,7 +184,6 @@ export default function ChatIA() {
           </div>
         </div>
 
-        {/* Chat Body */}
         <div className="chat-body" ref={chatRef}>
           {history.map((msg, i) => {
             const isTestIntro = msg.texto === "Aquí tienes tu test interactivo:";
@@ -201,27 +199,32 @@ export default function ChatIA() {
           })}
           {testQuestions.map((q, i) => (
             <div key={i} className="test-question">
-              <p><strong>{i + 1}. {q.question}</strong></p>
+              <p><strong>{i + 1}. {q.question || "❌ Pregunta sin texto"}</strong></p>
               <div className="test-options">
-                {q.options.map((opt, idx) => (
-                  <label key={idx}>
-                    <input
-                      type="radio"
-                      name={`question-${i}`}
-                      value={String.fromCharCode(65 + idx)}
-                      checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
-                      onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
-                    />
-                    {String.fromCharCode(65 + idx)}. {opt}
-                  </label>
-                ))}
+                {Array.isArray(q.options) ? (
+                  q.options.map((opt, idx) => (
+                    <label key={idx}>
+                      <input
+                        type="radio"
+                        name={`question-${i}`}
+                        value={String.fromCharCode(65 + idx)}
+                        checked={selectedAnswers[i] === String.fromCharCode(65 + idx)}
+                        onChange={() => handleTestAnswer(i, String.fromCharCode(65 + idx))}
+                      />
+                      {String.fromCharCode(65 + idx)}. {opt}
+                    </label>
+                  ))
+                ) : (
+                  <p style={{ color: "red", fontStyle: "italic" }}>
+                    ❌ Esta pregunta no tiene opciones válidas.
+                  </p>
+                )}
               </div>
             </div>
           ))}
           {loading && <p className="loading-msg">Cargando…</p>}
         </div>
 
-        {/* Footer */}
         <div className="chat-footer">
           <input
             type="text"
@@ -260,7 +263,6 @@ export default function ChatIA() {
         {error && <p className="chat-error">{error}</p>}
       </div>
 
-      {/* Modal Subida Documento */}
       {showUploadModal && (
         <div className={`modal-overlay show ${isClosing ? "closing" : ""}`}>
           <div className="modal-content" ref={modalRef}>
@@ -289,7 +291,6 @@ export default function ChatIA() {
                 Seleccionar archivo
               </label>
 
-              {/* Selector de asignatura dentro del modal */}
               <select
                 className="subject-selector"
                 value={subject}
