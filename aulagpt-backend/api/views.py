@@ -263,6 +263,7 @@ class AskAPIView(APIView):
         question = request.data.get('question')
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
+
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -274,7 +275,21 @@ class AskAPIView(APIView):
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
                 f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
-                "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra."
+                "Genera 5 preguntas de opción múltiple y devuélvelas en este formato JSON puro, sin texto antes ni después:\n\n"
+                "{\n"
+                "  \"test\": [\n"
+                "    {\n"
+                "      \"question\": \"Pregunta 1\",\n"
+                "      \"options\": {\n"
+                "        \"A\": \"Opción A\",\n"
+                "        \"B\": \"Opción B\",\n"
+                "        \"C\": \"Opción C\",\n"
+                "        \"D\": \"Opción D\"\n"
+                "      },\n"
+                "      \"correct_option\": \"A\"\n"
+                "    }\n"
+                "  ]\n"
+                "}"
             )
         elif action == 'summary':
             prompt = (
@@ -305,11 +320,24 @@ class AskAPIView(APIView):
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if action == 'test':
-            match = re.search(r'\[.*\]', raw, re.DOTALL)
-            if not match:
-                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
-                items = json.loads(match.group(0))
+                parsed = json.loads(raw)
+                items_raw = parsed.get("test", [])
+                items = []
+
+                for it in items_raw:
+                    options_dict = it.get("options", {})
+                    options_list = [
+                        options_dict.get("A"),
+                        options_dict.get("B"),
+                        options_dict.get("C"),
+                        options_dict.get("D")
+                    ]
+                    items.append({
+                        "question": it.get("question"),
+                        "options": options_list,
+                        "correct_option": it.get("correct_option")
+                    })
             except Exception as e:
                 return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -318,15 +346,16 @@ class AskAPIView(APIView):
                 document=None,
                 test_name=f"Test automático {subject} – {timezone.now():%Y-%m-%d %H:%M}"
             )
+
             for it in items:
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [None])[0],
-                    option_b=it.get('options', [None])[1],
-                    option_c=it.get('options', [None])[2],
-                    option_d=it.get('options', [None])[3],
-                    correct_option=it.get('correct')
+                    option_a=it.get("options", [None, None, None, None])[0],
+                    option_b=it.get("options", [None, None, None, None])[1],
+                    option_c=it.get("options", [None, None, None, None])[2],
+                    option_d=it.get("options", [None, None, None, None])[3],
+                    correct_option=it.get('correct_option')
                 )
 
             ChatHistory.objects.create(
@@ -335,18 +364,21 @@ class AskAPIView(APIView):
                 question=question,
                 response=raw
             )
+
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
 
+        # Para resumen o respuesta estándar
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
             question=question,
             response=raw
         )
+
         return Response({
             "question": question,
             "answer": raw
