@@ -269,25 +269,20 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Obtener nombre del usuario
         name = getattr(user, 'name', user.username)
 
-        # Obtener documentos subidos por el usuario para la asignatura
         documentos = Documents.objects.filter(owner=user, subject=subject).order_by('-upload_date')
         if not documentos.exists():
             return Response({"error": "No se encontraron documentos para esa asignatura"}, status=400)
 
-        # Obtener texto extraído
         context = extraer_texto_de_documentos_usuario(subject, user.id)
         if not context.strip():
             return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
 
-        # Añadir nombres de documentos al contexto
         nombres_docs = [doc.file_name for doc in documentos]
         nombres_str = ", ".join(nombres_docs)
         contexto_final = f"(Documentos subidos: {nombres_str})\n\n{context[:8000]}"
 
-        # Construir prompt según el tipo de acción
         if action == 'test':
             prompt = (
                 f"Hola {name}, soy AulaGPT, un generador de tests para la asignatura {subject}.\n"
@@ -309,7 +304,6 @@ class AskAPIView(APIView):
                 "Responde de forma clara y concisa."
             )
 
-        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
@@ -323,7 +317,6 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
-        # Si el usuario ha pedido un test
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
@@ -340,13 +333,15 @@ class AskAPIView(APIView):
                 test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
 
+            preguntas_validas = []
             for it in items:
                 pregunta = it.get('question')
                 opciones = it.get('options', [])
                 correcta = it.get('correct')
 
-                if not pregunta or len(opciones) < 4 or not correcta:
-                    continue  # Saltar preguntas mal formadas
+                if not pregunta or not isinstance(opciones, list) or len(opciones) < 4 or not correcta:
+                    print(f"[⚠️ Pregunta inválida]: {it}")
+                    continue
 
                 try:
                     TestQuestion.objects.create(
@@ -358,6 +353,11 @@ class AskAPIView(APIView):
                         option_d=opciones[3],
                         correct_option=correcta
                     )
+                    preguntas_validas.append({
+                        "question": pregunta,
+                        "options": opciones,
+                        "correct": correcta
+                    })
                 except Exception as e:
                     print(f"[⚠️ ERROR al guardar pregunta]: {e}")
                     continue
@@ -372,10 +372,9 @@ class AskAPIView(APIView):
             return Response({
                 "question": question,
                 "test_id": test.test_id,
-                "test": items
+                "test": preguntas_validas
             })
 
-        # Si no es test, guardar como interacción normal
         ChatHistory.objects.create(
             user=user,
             subject=subject,
@@ -387,6 +386,7 @@ class AskAPIView(APIView):
             "question": question,
             "answer": raw
         })
+
 
 class ProgressViewSet(viewsets.ModelViewSet):
     queryset = Progress.objects.all()
