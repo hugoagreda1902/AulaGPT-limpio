@@ -264,98 +264,65 @@ class AskAPIView(APIView):
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
 
-        if not question or not subject:
-            return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+        user_name = request.user.name or request.user.username
 
-        # Obtener nombre real del usuario
-        nombre_usuario = getattr(request.user, 'name', request.user.username)
+        # Obtener lista de documentos subidos por el usuario para esa asignatura
+        documentos = Documents.objects.filter(owner=request.user, class_id__name=subject)
+        nombres_documentos = ', '.join(doc.file_name for doc in documentos) or "ningún documento"
 
-        # Obtener nombres de los documentos subidos por el usuario para esa materia
-        docs = Documents.objects.filter(owner=request.user, subject=subject)
-        nombres_docs = [doc.file_name for doc in docs]
-        nombres_str = ", ".join(nombres_docs) if nombres_docs else "ningún documento"
-
-        # Extraer el texto de los documentos
         context = extraer_texto_de_documentos_usuario(subject, request.user.id)
-        if not context.strip():
-            return Response({"error": "No se pudo extraer texto de los documentos"}, status=status.HTTP_400_BAD_REQUEST)
+        context_final = context[:8000]
 
-        # Añadir al contexto los nombres de los documentos subidos
-        info_docs = f"El usuario {nombre_usuario} ha subido los siguientes documentos para la asignatura {subject}: {nombres_str}.\n\n"
-        contexto_final = info_docs + context[:8000]
-
-        # PROMPT personalizado según tipo de acción
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
-                "Genera 5 preguntas de opción múltiple y devuélvelas en este formato JSON puro, sin texto antes ni después:\n\n"
-                "{\n"
-                "  \"test\": [\n"
-                "    {\n"
-                "      \"question\": \"Pregunta 1\",\n"
-                "      \"options\": {\n"
-                "        \"A\": \"Opción A\",\n"
-                "        \"B\": \"Opción B\",\n"
-                "        \"C\": \"Opción C\",\n"
-                "        \"D\": \"Opción D\"\n"
-                "      },\n"
-                "      \"correct_option\": \"A\"\n"
-                "    }\n"
-                "  ]\n"
-                "}"
+                f"El usuario se llama {user_name} y ha subido los siguientes documentos: {nombres_documentos}.\n\n"
+                f"Usa únicamente el siguiente contenido:\n\n{context_final}\n\n"
+                "Devuelve exactamente 5 preguntas tipo test en el siguiente formato JSON puro, sin texto adicional:\n"
+                "[\n"
+                "  {\n"
+                "    \"question\": \"¿Pregunta...?\",\n"
+                "    \"options\": [\"A\", \"B\", \"C\", \"D\"],\n"
+                "    \"correct\": \"B\"\n"
+                "  }, ...\n"
+                "]"
             )
-
         elif action == 'summary':
             prompt = (
                 f"Eres AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
-                "Devuélveme un resumen en máximo 5 viñetas."
+                f"El usuario se llama {user_name} y ha subido los siguientes documentos: {nombres_documentos}.\n\n"
+                f"Usa únicamente el siguiente contenido:\n\n{context_final}\n\n"
+                "Devuelve un resumen en máximo 5 viñetas."
             )
-
         else:
             prompt = (
-                f"Hola {nombre_usuario}, eres AulaGPT, un asistente educativo para ayudarte con la asignatura {subject}.\n"
-                f"Tienes este contenido disponible:\n\n{contexto_final}\n\n"
-                "Usa ese contenido solo si es relevante para responder la pregunta del alumno. "
-                "Si la pregunta no está relacionada con el material, responde de forma natural y útil.\n\n"
-                "Responde de forma clara y concisa."
+                f"Hola {user_name}, soy AulaGPT, tu asistente educativo para la asignatura {subject}.\n"
+                f"Has subido los siguientes documentos: {nombres_documentos}.\n\n"
+                f"Tienes este contenido disponible:\n\n{context_final}\n\n"
+                "Usa ese contenido solo si es relevante para responder la pregunta.\n"
+                "Si la pregunta no está relacionada con el material, responde de forma natural y clara."
             )
 
-        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": prompt},
-                    {"role": "user",   "content": question}
+                    {"role": "user", "content": question}
                 ]
             )
             raw = resp.choices[0].message.content.strip()
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Acción: TEST
+        # Si es test, procesar JSON
         if action == 'test':
+            match = re.search(r'\[.*\]', raw, re.DOTALL)
+            if not match:
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
-                parsed = json.loads(raw)
-                items_raw = parsed.get("test", [])
-                items = []
-
-                for it in items_raw:
-                    options_dict = it.get("options", {})
-                    options_list = [
-                        options_dict.get("A"),
-                        options_dict.get("B"),
-                        options_dict.get("C"),
-                        options_dict.get("D")
-                    ]
-                    items.append({
-                        "question": it.get("question"),
-                        "options": options_list,
-                        "correct_option": it.get("correct_option")
-                    })
+                items = json.loads(match.group(0))
             except Exception as e:
                 return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -369,11 +336,11 @@ class AskAPIView(APIView):
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get("options", [None]*4)[0],
-                    option_b=it.get("options", [None]*4)[1],
-                    option_c=it.get("options", [None]*4)[2],
-                    option_d=it.get("options", [None]*4)[3],
-                    correct_option=it.get('correct_option')
+                    option_a=it.get('options', [None])[0],
+                    option_b=it.get('options', [None])[1],
+                    option_c=it.get('options', [None])[2],
+                    option_d=it.get('options', [None])[3],
+                    correct_option=it.get('correct')
                 )
 
             ChatHistory.objects.create(
@@ -389,7 +356,7 @@ class AskAPIView(APIView):
                 "test": items
             })
 
-        # Acción: SUMMARY o ANSWER
+        # Si no es test, guardar historial y responder
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
