@@ -267,14 +267,28 @@ class AskAPIView(APIView):
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Obtener nombre real del usuario
+        nombre_usuario = getattr(request.user, 'name', request.user.username)
+
+        # Obtener nombres de los documentos subidos por el usuario para esa materia
+        docs = Document.objects.filter(owner=request.user, subject=subject)
+        nombres_docs = [doc.file_name for doc in docs]
+        nombres_str = ", ".join(nombres_docs) if nombres_docs else "ningún documento"
+
+        # Extraer el texto de los documentos
         context = extraer_texto_de_documentos_usuario(subject, request.user.id)
         if not context.strip():
             return Response({"error": "No se pudo extraer texto de los documentos"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Añadir al contexto los nombres de los documentos subidos
+        info_docs = f"El usuario {nombre_usuario} ha subido los siguientes documentos para la asignatura {subject}: {nombres_str}.\n\n"
+        contexto_final = info_docs + context[:8000]
+
+        # PROMPT personalizado según tipo de acción
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
                 "Genera 5 preguntas de opción múltiple y devuélvelas en este formato JSON puro, sin texto antes ni después:\n\n"
                 "{\n"
                 "  \"test\": [\n"
@@ -291,21 +305,24 @@ class AskAPIView(APIView):
                 "  ]\n"
                 "}"
             )
+
         elif action == 'summary':
             prompt = (
                 f"Eres AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
                 "Devuélveme un resumen en máximo 5 viñetas."
             )
+
         else:
             prompt = (
-                f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
-                f"Tienes este contenido disponible:\n\n{context[:8000]}\n\n"
-                "Usa ese contenido solo si es relevante para responder la pregunta. "
-                "Si la pregunta no está relacionada con el material, responde de forma natural.\n\n"
+                f"Hola {nombre_usuario}, eres AulaGPT, un asistente educativo para ayudarte con la asignatura {subject}.\n"
+                f"Tienes este contenido disponible:\n\n{contexto_final}\n\n"
+                "Usa ese contenido solo si es relevante para responder la pregunta del alumno. "
+                "Si la pregunta no está relacionada con el material, responde de forma natural y útil.\n\n"
                 "Responde de forma clara y concisa."
             )
 
+        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
@@ -319,6 +336,7 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        # Acción: TEST
         if action == 'test':
             try:
                 parsed = json.loads(raw)
@@ -344,17 +362,17 @@ class AskAPIView(APIView):
             test = Tests.objects.create(
                 creator=request.user,
                 document=None,
-                test_name=f"Test automático {subject} – {timezone.now():%Y-%m-%d %H:%M}"
+                test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
 
             for it in items:
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get("options", [None, None, None, None])[0],
-                    option_b=it.get("options", [None, None, None, None])[1],
-                    option_c=it.get("options", [None, None, None, None])[2],
-                    option_d=it.get("options", [None, None, None, None])[3],
+                    option_a=it.get("options", [None]*4)[0],
+                    option_b=it.get("options", [None]*4)[1],
+                    option_c=it.get("options", [None]*4)[2],
+                    option_d=it.get("options", [None]*4)[3],
                     correct_option=it.get('correct_option')
                 )
 
@@ -371,7 +389,7 @@ class AskAPIView(APIView):
                 "test": items
             })
 
-        # Para resumen o respuesta estándar
+        # Acción: SUMMARY o ANSWER
         ChatHistory.objects.create(
             user=request.user,
             subject=subject,
