@@ -271,7 +271,7 @@ class AskAPIView(APIView):
         nombre_usuario = getattr(request.user, 'name', request.user.username)
 
         # Obtener nombres de los documentos subidos por el usuario para esa materia
-        docs = Document.objects.filter(owner=request.user, subject=subject)
+        docs = Documents.objects.filter(owner=request.user, subject=subject)
         nombres_docs = [doc.file_name for doc in docs]
         nombres_str = ", ".join(nombres_docs) if nombres_docs else "ningún documento"
 
