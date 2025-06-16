@@ -264,47 +264,46 @@ class AskAPIView(APIView):
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
 
-        user_name = request.user.name or request.user.username
-
-        # Obtener lista de documentos subidos por el usuario para esa asignatura
-        documentos = Documents.objects.filter(owner=request.user, class_id__name=subject)
-        nombres_documentos = ', '.join(doc.file_name for doc in documentos) or "ningún documento"
-
-        context = extraer_texto_de_documentos_usuario(subject, request.user.id)
-        context_final = context[:8000]
+        # Obtener nombre del usuario y documentos relacionados
+        user = request.user
+        nombre = user.name if hasattr(user, 'name') else user.username
+        documentos = Documents.objects.filter(owner=user, subject=subject)
+        nombres_docs = [doc.file_name for doc in documentos]
+        nombres_texto = ", ".join(nombres_docs) if nombres_docs else "ninguno"
+        context = extraer_texto_de_documentos_usuario(subject, user.id)
 
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
-                f"El usuario se llama {user_name} y ha subido los siguientes documentos: {nombres_documentos}.\n\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context_final}\n\n"
-                "Devuelve exactamente 5 preguntas tipo test en el siguiente formato JSON puro, sin texto adicional:\n"
-                "[\n"
-                "  {\n"
-                "    \"question\": \"¿Pregunta...?\",\n"
-                "    \"options\": [\"A\", \"B\", \"C\", \"D\"],\n"
-                "    \"correct\": \"B\"\n"
-                "  }, ...\n"
-                "]"
+                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
+                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra. "
+                "Usa el siguiente formato: "
+                "[{\"question\": \"¿...?\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"correct\": \"B\"}, ...]"
             )
         elif action == 'summary':
             prompt = (
                 f"Eres AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
-                f"El usuario se llama {user_name} y ha subido los siguientes documentos: {nombres_documentos}.\n\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context_final}\n\n"
-                "Devuelve un resumen en máximo 5 viñetas."
+                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
+                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                "Devuélveme un resumen en máximo 5 viñetas."
             )
         else:
             prompt = (
-                f"Hola {user_name}, soy AulaGPT, tu asistente educativo para la asignatura {subject}.\n"
-                f"Has subido los siguientes documentos: {nombres_documentos}.\n\n"
-                f"Tienes este contenido disponible:\n\n{context_final}\n\n"
-                "Usa ese contenido solo si es relevante para responder la pregunta.\n"
-                "Si la pregunta no está relacionada con el material, responde de forma natural y clara."
+                f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
+                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
+                f"Tienes este contenido disponible:\n\n{context[:8000]}\n\n"
+                "Usa ese contenido solo si es relevante para responder la pregunta. "
+                "Si la pregunta no está relacionada con el material, responde de forma natural.\n\n"
+                "Responde de forma clara y concisa."
             )
 
         openai.api_key = settings.OPENAI_API_KEY
+
         try:
+            print("🔍 Prompt generado:\n", prompt)
+            print("👤 Pregunta del usuario:", question)
+
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -313,21 +312,32 @@ class AskAPIView(APIView):
                 ]
             )
             raw = resp.choices[0].message.content.strip()
-        except Exception as e:
-            return Response({"error": f"Fallo en OpenAI: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Si es test, procesar JSON
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            print("❌ ERROR DETALLADO:\n", error_detail)
+            return Response({"error": f"Fallo en OpenAI:\n{str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Guardar en historial
+        ChatHistory.objects.create(
+            user=user,
+            subject=subject,
+            question=question,
+            response=raw
+        )
+
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
-                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
             try:
                 items = json.loads(match.group(0))
             except Exception as e:
-                return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({"error": f"Error parseando JSON: {e}"}, status=500)
 
             test = Tests.objects.create(
-                creator=request.user,
+                creator=user,
                 document=None,
                 test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
@@ -343,26 +353,11 @@ class AskAPIView(APIView):
                     correct_option=it.get('correct')
                 )
 
-            ChatHistory.objects.create(
-                user=request.user,
-                subject=subject,
-                question=question,
-                response=raw
-            )
-
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
-
-        # Si no es test, guardar historial y responder
-        ChatHistory.objects.create(
-            user=request.user,
-            subject=subject,
-            question=question,
-            response=raw
-        )
 
         return Response({
             "question": question,
