@@ -338,14 +338,15 @@ class AskAPIView(APIView):
             )
 
             for it in items:
+                opciones = it.get('options', [])
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [None])[0],
-                    option_b=it.get('options', [None])[1],
-                    option_c=it.get('options', [None])[2],
-                    option_d=it.get('options', [None])[3],
-                    correct_option=it.get('correct')
+                        option_a=opciones[0] if len(opciones) > 0 else None,
+                        option_b=opciones[1] if len(opciones) > 1 else None,
+                        option_c=opciones[2] if len(opciones) > 2 else None,
+                        option_d=opciones[3] if len(opciones) > 3 else None,
+                        correct_option=it.get('correct')
                 )
 
             ChatHistory.objects.create(
