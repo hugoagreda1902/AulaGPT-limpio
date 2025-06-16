@@ -287,6 +287,7 @@ class AskAPIView(APIView):
         nombres_str = ", ".join(nombres_docs)
         contexto_final = f"(Documentos subidos: {nombres_str})\n\n{context[:8000]}"
 
+        # Construir prompt según el tipo de acción
         if action == 'test':
             prompt = (
                 f"Hola {name}, soy AulaGPT, un generador de tests para la asignatura {subject}.\n"
@@ -308,6 +309,7 @@ class AskAPIView(APIView):
                 "Responde de forma clara y concisa."
             )
 
+        # Llamada a OpenAI
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
@@ -321,6 +323,7 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
+        # Si el usuario ha pedido un test
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
@@ -338,16 +341,26 @@ class AskAPIView(APIView):
             )
 
             for it in items:
+                pregunta = it.get('question')
                 opciones = it.get('options', [])
-                TestQuestion.objects.create(
-                    test=test,
-                    question_text=it.get('question'),
-                        option_a=opciones[0] if len(opciones) > 0 else None,
-                        option_b=opciones[1] if len(opciones) > 1 else None,
-                        option_c=opciones[2] if len(opciones) > 2 else None,
-                        option_d=opciones[3] if len(opciones) > 3 else None,
-                        correct_option=it.get('correct')
-                )
+                correcta = it.get('correct')
+
+                if not pregunta or len(opciones) < 4 or not correcta:
+                    continue  # Saltar preguntas mal formadas
+
+                try:
+                    TestQuestion.objects.create(
+                        test=test,
+                        question_text=pregunta,
+                        option_a=opciones[0],
+                        option_b=opciones[1],
+                        option_c=opciones[2],
+                        option_d=opciones[3],
+                        correct_option=correcta
+                    )
+                except Exception as e:
+                    print(f"[⚠️ ERROR al guardar pregunta]: {e}")
+                    continue
 
             ChatHistory.objects.create(
                 user=user,
@@ -362,7 +375,7 @@ class AskAPIView(APIView):
                 "test": items
             })
 
-        # Si no es test, guardar en historial y devolver respuesta normal
+        # Si no es test, guardar como interacción normal
         ChatHistory.objects.create(
             user=user,
             subject=subject,
