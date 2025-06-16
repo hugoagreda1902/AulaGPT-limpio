@@ -115,19 +115,30 @@ export default function ChatIA() {
   };
 
   const handleSubmitTest = async () => {
-    try {
-      const answers = testQuestions.map((q, i) => ({
-        question: q.question,
-        selected: selectedAnswers[i]
-      }));
-      await submitTest(subject, answers);
-      setHistory(prev => [...prev, { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }]);
-      setTestQuestions([]);
-      setSelectedAnswers({});
-    } catch (e) {
-      setError("Error al enviar el test");
-    }
-  };
+  if (!Array.isArray(testQuestions) || testQuestions.length === 0) {
+    setError("No hay preguntas para enviar.");
+    return;
+  }
+
+  try {
+    const answers = testQuestions.map((q, i) => ({
+      question: q?.question || "", // Asegura que nunca sea undefined
+      selected: selectedAnswers[i] || "", // Igual aquí
+    }));
+
+    await submitTest(subject, answers);
+
+    setHistory(prev => [
+      ...prev,
+      { timestamp: new Date(), autor: "ia", texto: "Test enviado correctamente." }
+    ]);
+    setTestQuestions([]);
+    setSelectedAnswers({});
+  } catch (e) {
+    console.error("❌ Error al enviar test:", e);
+    setError("Error al enviar el test.");
+  }
+};
 
   useEffect(() => {
     const handleClickOutside = (e) => {
