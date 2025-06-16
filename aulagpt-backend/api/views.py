@@ -264,46 +264,45 @@ class AskAPIView(APIView):
         subject = request.data.get('subject')
         action = request.data.get('action', 'answer')
 
-        # Obtener nombre del usuario y documentos relacionados
+        if not question or not subject:
+            return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
+
         user = request.user
-        nombre = user.name if hasattr(user, 'name') else user.username
-        documentos = Documents.objects.filter(owner=user, subject=subject)
-        nombres_docs = [doc.file_name for doc in documentos]
-        nombres_texto = ", ".join(nombres_docs) if nombres_docs else "ninguno"
+        name = getattr(user, 'first_name', '') or user.username
+
         context = extraer_texto_de_documentos_usuario(subject, user.id)
+        documentos = Documents.objects.filter(user=user, subject=subject).values_list('file_name', flat=True)
+        lista_docs = ", ".join(documentos) if documentos else "ningún documento disponible"
+
+        if not context.strip():
+            return Response({"error": "No se pudo extraer texto de los documentos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        contexto_final = f"El usuario ha subido los siguientes documentos: {lista_docs}\n\n{context[:8000]}"
 
         if action == 'test':
             prompt = (
                 f"Eres AulaGPT, un generador de tests para la asignatura {subject}.\n"
-                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
-                "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra. "
-                "Usa el siguiente formato: "
-                "[{\"question\": \"¿...?\", \"options\": [\"A\", \"B\", \"C\", \"D\"], \"correct\": \"B\"}, ...]"
+                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
+                "Genera 5 preguntas de opción múltiple en JSON puro, sin comentarios ni texto extra."
             )
         elif action == 'summary':
             prompt = (
                 f"Eres AulaGPT, un generador de resúmenes para la asignatura {subject}.\n"
-                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
-                f"Usa únicamente el siguiente contenido:\n\n{context[:8000]}\n\n"
+                f"Usa únicamente el siguiente contenido:\n\n{contexto_final}\n\n"
                 "Devuélveme un resumen en máximo 5 viñetas."
             )
         else:
             prompt = (
                 f"Eres AulaGPT, un asistente educativo para la asignatura {subject}.\n"
-                f"El usuario se llama {nombre} y ha subido los siguientes documentos: {nombres_texto}.\n"
-                f"Tienes este contenido disponible:\n\n{context[:8000]}\n\n"
+                f"Tienes este contenido disponible:\n\n{contexto_final}\n\n"
+                f"Si el usuario pregunta por los documentos, dile: 'Hola {name}, has subido los siguientes documentos: {lista_docs}'.\n"
                 "Usa ese contenido solo si es relevante para responder la pregunta. "
                 "Si la pregunta no está relacionada con el material, responde de forma natural.\n\n"
                 "Responde de forma clara y concisa."
             )
 
         openai.api_key = settings.OPENAI_API_KEY
-
         try:
-            print("🔍 Prompt generado:\n", prompt)
-            print("👤 Pregunta del usuario:", question)
-
             resp = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -312,53 +311,56 @@ class AskAPIView(APIView):
                 ]
             )
             raw = resp.choices[0].message.content.strip()
-
         except Exception as e:
-            import traceback
-            error_detail = traceback.format_exc()
-            print("❌ ERROR DETALLADO:\n", error_detail)
-            return Response({"error": f"Fallo en OpenAI:\n{str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # Guardar en historial
-        ChatHistory.objects.create(
-            user=user,
-            subject=subject,
-            question=question,
-            response=raw
-        )
+            return Response({"error": f"Fallo en OpenAI: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if action == 'test':
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
-                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
+                return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             try:
                 items = json.loads(match.group(0))
             except Exception as e:
-                return Response({"error": f"Error parseando JSON: {e}"}, status=500)
+                return Response({"error": f"Error parseando JSON: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            document = Documents.objects.filter(user=user, subject=subject).last()
+            if not document:
+                return Response({"error": "No se encontró ningún documento para esta asignatura."}, status=status.HTTP_400_BAD_REQUEST)
 
             test = Tests.objects.create(
                 creator=user,
-                document=None,
+                document=document,
                 test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
-
             for it in items:
                 TestQuestion.objects.create(
                     test=test,
                     question_text=it.get('question'),
-                    option_a=it.get('options', [None])[0],
-                    option_b=it.get('options', [None])[1],
-                    option_c=it.get('options', [None])[2],
-                    option_d=it.get('options', [None])[3],
+                    option_a=it.get('options', [None, None, None, None])[0],
+                    option_b=it.get('options', [None, None, None, None])[1],
+                    option_c=it.get('options', [None, None, None, None])[2],
+                    option_d=it.get('options', [None, None, None, None])[3],
                     correct_option=it.get('correct')
                 )
 
+            ChatHistory.objects.create(
+                user=user,
+                subject=subject,
+                question=question,
+                response=raw
+            )
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": items
             })
 
+        ChatHistory.objects.create(
+            user=user,
+            subject=subject,
+            question=question,
+            response=raw
+        )
         return Response({
             "question": question,
             "answer": raw
