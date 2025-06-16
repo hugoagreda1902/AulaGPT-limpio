@@ -182,33 +182,52 @@ class TestsViewSet(viewsets.ModelViewSet):
     serializer_class = TestsSerializer
     permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['post'], url_path='submit')
+    def get_queryset(self):
+        return Tests.objects.filter(creator=self.request.user)
+
+    @action(detail=False, methods=["post"], url_path="submit")
     def submit_answers(self, request):
         subject = request.data.get('subject')
         answers = request.data.get('answers')
+
         if not subject or not answers:
             return Response({"error": "Faltan datos"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Buscar el test más reciente del usuario en esa asignatura
         test = Tests.objects.filter(
             creator=request.user,
             test_name__icontains=subject
         ).order_by('-creation_date').first()
+
         if not test:
             return Response({"error": "No se encontró un test para esa asignatura."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Recorrer respuestas y guardar en la base de datos
         for ans in answers:
             qtext = ans.get('question')
             selected = ans.get('selected')
+
             try:
                 q = TestQuestion.objects.get(test=test, question_text=qtext)
             except TestQuestion.DoesNotExist:
                 continue
+
+            is_correct = (
+                selected and q.correct_option and
+                selected.strip().upper() == q.correct_option.strip().upper()
+            )
+
             TestAnswer.objects.create(
                 user=request.user,
                 test=test,
                 question=q,
                 selected_option=selected,
-                is_correct=(selected == q.correct_option)
+                is_correct=is_correct
             )
+
+        # Guardar actividad del usuario
         Activity.objects.create(user=request.user, activity_type='answer')
+
         return Response({"message": "Respuestas guardadas correctamente."})
 
 
