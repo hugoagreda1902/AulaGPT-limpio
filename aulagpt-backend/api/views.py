@@ -275,33 +275,44 @@ class StudentTeacherViewSet(viewsets.ModelViewSet):
         return Response({'status': obj.status})
 
 
+# Vista API protegida: solo accesible para usuarios autenticados
 class AskAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Método POST que maneja la pregunta o acción del usuario
     def post(self, request):
+        # Datos que llegan desde el frontend
         question = request.data.get('question')
         subject = request.data.get('subject')
-        action = request.data.get('action', 'answer')
+        action = request.data.get('action', 'answer')  # Por defecto, responder
 
-        user = request.user
+        user = request.user  # Usuario autenticado
 
+        # Validación: pregunta y asignatura son obligatorios
         if not question or not subject:
             return Response({"error": "Faltan campos requeridos"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Nombre visible del usuario
         name = getattr(user, 'name', user.username)
 
+        # Se obtienen los documentos del usuario para esa asignatura
         documentos = Documents.objects.filter(owner=user, subject=subject).order_by('-upload_date')
         if not documentos.exists():
             return Response({"error": "No se encontraron documentos para esa asignatura"}, status=400)
 
+        # Extraer el texto de los documentos
         context = extraer_texto_de_documentos_usuario(subject, user.id)
         if not context.strip():
             return Response({"error": "No se pudo extraer texto de los documentos"}, status=400)
 
+        # Preparar una lista con los nombres de los documentos
         nombres_docs = [doc.file_name for doc in documentos]
         nombres_str = ", ".join(nombres_docs)
+
+        # Preparar el contexto final a incluir en el prompt, limitado a 8000 caracteres
         contexto_final = f"(Documentos subidos: {nombres_str})\n\n{context[:8000]}"
 
+        # PROMPT que se genera según el tipo de acción: test, resumen o pregunta
         if action == 'test':
             prompt = (
                 f"Hola {name}, soy AulaGPT, un generador de tests para la asignatura {subject}.\n"
@@ -328,6 +339,7 @@ class AskAPIView(APIView):
                 "Responde de forma clara y concisa."
             )
 
+        # LLAMADA a la API de OpenAI con el prompt generado
         openai.api_key = settings.OPENAI_API_KEY
         try:
             resp = openai.ChatCompletion.create(
@@ -341,7 +353,9 @@ class AskAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Fallo en OpenAI: {e}"}, status=500)
 
+        # Si la acción es generar un test
         if action == 'test':
+            # Extraer el JSON que contiene las preguntas del test
             match = re.search(r'\[.*\]', raw, re.DOTALL)
             if not match:
                 return Response({"error": "La respuesta de OpenAI no contiene un JSON válido."}, status=500)
@@ -350,6 +364,7 @@ class AskAPIView(APIView):
             except Exception as e:
                 return Response({"error": f"Error parseando JSON: {e}"}, status=500)
 
+            # Asociar el test al documento más reciente del usuario
             documento = documentos.first()
             test = Tests.objects.create(
                 creator=user,
@@ -357,17 +372,20 @@ class AskAPIView(APIView):
                 test_name=f"Test automático {subject} – {timezone.now().strftime('%Y-%m-%d %H:%M')}"
             )
 
-            preguntas_validas = []
+            preguntas_validas = []  # Lista para enviar al frontend
+
             for it in items:
                 pregunta = it.get('question')
                 opciones = it.get('options', [])
                 correcta = it.get('correct')
 
+                # Validación de que cada pregunta tenga lo necesario
                 if not pregunta or not isinstance(opciones, list) or len(opciones) < 4 or not correcta:
                     print(f"[⚠️ Pregunta inválida]: {it}")
                     continue
 
                 try:
+                    # Guardar la pregunta en base de datos
                     TestQuestion.objects.create(
                         test=test,
                         question_text=pregunta,
@@ -377,6 +395,7 @@ class AskAPIView(APIView):
                         option_d=opciones[3],
                         correct_option=correcta
                     )
+                    # Añadir a la lista de preguntas válidas
                     preguntas_validas.append({
                         "question": pregunta,
                         "options": opciones,
@@ -386,6 +405,7 @@ class AskAPIView(APIView):
                     print(f"[⚠️ ERROR al guardar pregunta]: {e}")
                     continue
 
+            # Guardar interacción en el historial
             ChatHistory.objects.create(
                 user=user,
                 subject=subject,
@@ -393,12 +413,14 @@ class AskAPIView(APIView):
                 response=raw
             )
 
+            # Devolver test al frontend
             return Response({
                 "question": question,
                 "test_id": test.test_id,
                 "test": preguntas_validas
             })
 
+        # Para acciones normales: responder o resumir
         ChatHistory.objects.create(
             user=user,
             subject=subject,
