@@ -1,0 +1,90 @@
+COMANDOS ÚTILES - AulaGPT
+==========================
+
+📂 BACKEND (Django)
+-------------------
+
+🔧 Instalación y preparación
+cd aulagpt-backend
+pip install -r requirements.txt
+python manage.py collectstatic --noinput
+
+⚙️ Migraciones (Base de datos)
+python manage.py makemigrations
+python manage.py migrate
+
+🚀 Ejecutar servidor de desarrollo
+python manage.py runserver
+
+🐘 Ejecutar servidor de producción con Gunicorn
+cd aulagpt-backend
+gunicorn aulagpt_backend.wsgi:application --timeout 60 --log-file -
+
+💻 FRONTEND
+-----------
+
+▶️ Ejecutar entorno de desarrollo
+npm start
+
+💼 ENTORNO VIRTUAL (Windows - PowerShell)
+-----------------------------------------
+
+🔛 Activar entorno virtual
+venv\Scripts\activate
+
+🔚 Desactivar entorno virtual
+deactivate
+
+⚠️ Bypass para evitar restricciones al activar el entorno
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+🔍 EXPLORACIÓN DE CARPETAS (PowerShell)
+---------------------------------------
+
+Get-ChildItem -Path . -Directory -Recurse -Depth 2 | ForEach-Object {
+    $indent = "  " * ($_.FullName.Split('\').Count)
+    Write-Host "$indent$($_.Name)"
+}
+
+🌱 GIT - Control de versiones
+-----------------------------
+
+git add .
+git commit -m "Mensaje que describa tus cambios"
+git push origin main
+
+🧭 NAVEGACIÓN ENTRE CARPETAS (Windows)
+--------------------------------------
+
+cd .\aulagpt-backend\
+cd ..
+
+✅ NOTAS
+--------
+
+- Este archivo es editable: añade nuevos comandos según lo vayas necesitando.
+- Puedes convertirlo a `.md` más adelante si lo subes a GitHub o necesitas formato más visual.
+
+📌 EXTRAS ÚTILES (OPCIONAL)
+---------------------------
+
+🔎 Comprobar errores de sintaxis en archivos Python
+python -m py_compile archivo.py
+
+🧪 Ejecutar tests (si se implementan tests en Django)
+python manage.py test
+
+🔁 Eliminar migraciones y reiniciarlas desde cero (solo si hay lío)
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc"  -delete
+
+🧪 Generar/actualizar requirements.txt con dependencias actuales
+pip freeze > requirements.txt
+
+📦 Instalar dependencias de frontend (cuando se clona el repo por primera vez)
+npm install
+
+🧹 Borrar archivos .pyc y carpetas __pycache__ (limpieza general)
+find . -name "*.pyc" -delete
+find . -name "__pycache__" -type d -exec rm -r {} +
+
