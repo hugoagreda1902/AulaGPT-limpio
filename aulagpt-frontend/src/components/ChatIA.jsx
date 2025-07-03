@@ -4,6 +4,8 @@ import logo from "../images/LogoAulaGPT.png";
 import { askQuestion, uploadDocument, submitTest } from "../api/dataService";
 import "../styles/ChatIA.css";
 
+// Guardar en github para posterior modificacion
+
 const SUBJECTS = [
   "Matemáticas", "Lengua", "Ingles", "Historia",
   "Ciencias", "Física", "Química"
